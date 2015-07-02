@@ -1,0 +1,15 @@
+<platform xmlns="http://ns.adobe.com/air/extension/17.0">
+    <sdkVersion>6.0</sdkVersion>
+    <linkerOptions>
+
+        <!-- Include libc++ library -->
+        <option>-lc++</option>
+
+    </linkerOptions>
+
+
+    <packagedDependencies>
+        <packagedDependency>Bugsnag.framework</packagedDependency>
+    </packagedDependencies>
+
+</platform>

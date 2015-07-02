@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<platform xmlns="http://ns.adobe.com/air/extension/17.0">
+
+	<packagedDependencies>
+		<packagedDependency>bugsnag-android-3.2.6.jar</packagedDependency>
+	</packagedDependencies>
+
+</platform>

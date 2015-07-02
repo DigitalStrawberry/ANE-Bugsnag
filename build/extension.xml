@@ -1,0 +1,43 @@
+<extension xmlns="http://ns.adobe.com/air/extension/17.0">
+    <id>com.bugsnag.ANEBugsnag</id>
+    <versionNumber>1.0</versionNumber> 
+    <platforms>
+        
+	<platform name="iPhone-ARM"> 
+            <applicationDeployment> 
+                <nativeLibrary>libANEBugsnag.a</nativeLibrary>
+                <initializer>ANEBugsnagInitializer</initializer>
+		<finalizer>ANEBugsnagFinalizer</finalizer>
+            </applicationDeployment> 
+        </platform>
+	
+	<platform name="iPhone-x86"> 
+            <applicationDeployment> 
+                <nativeLibrary>libANEBugsnag.a</nativeLibrary>
+                <initializer>ANEBugsnagInitializer</initializer>
+		<finalizer>ANEBugsnagFinalizer</finalizer>
+            </applicationDeployment> 
+        </platform>
+
+	<platform name="Android-ARM">
+	    <applicationDeployment>
+		<nativeLibrary>libANEBugsnag.jar</nativeLibrary>
+		<initializer>com.bugsnag.ANEBugsnag</initializer>
+		<finalizer>com.bugsnag.ANEBugsnag</finalizer>
+	    </applicationDeployment>
+	</platform>
+	
+	<platform name="Android-x86">
+	    <applicationDeployment>
+		<nativeLibrary>libANEBugsnag.jar</nativeLibrary>
+		<initializer>com.bugsnag.ANEBugsnag</initializer>
+		<finalizer>com.bugsnag.ANEBugsnag</finalizer>
+	    </applicationDeployment>
+	</platform>
+	
+	<platform name="default"> 
+	    <applicationDeployment/> 
+	</platform> 
+    
+    </platforms> 
+</extension>

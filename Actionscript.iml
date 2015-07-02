@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module type="Flex" version="4">
+  <component name="FlexBuildConfigurationManager" active="Test App">
+    <configurations>
+      <configuration name="Test App" target-platform="Mobile" pure-as="true" main-class="Main" output-file="Bugsnag-test.swf" output-folder="$MODULE_DIR$/ANE-Bugsnag-Test/bin">
+        <dependencies target-player="18.0">
+          <entries>
+            <entry library-id="ae8f547a-f572-4071-b4b4-d7bebbedc471">
+              <dependency linkage="Merged" />
+            </entry>
+          </entries>
+          <sdk name="air_sdk" />
+        </dependencies>
+        <compiler-options>
+          <map>
+            <entry key="compiler.debug.swf" value="true" />
+          </map>
+          <option name="additionalOptions" value="-verbose-stacktraces=true" />
+        </compiler-options>
+        <packaging-air-desktop />
+        <packaging-android enabled="true" use-generated-descriptor="false" custom-descriptor-path="$MODULE_DIR$/ANE-Bugsnag-Test/src/Main-app.xml" package-file-name="ANE-Bugsnag_(Actionscript)" />
+        <packaging-ios enabled="true" use-generated-descriptor="false" custom-descriptor-path="$MODULE_DIR$/ANE-Bugsnag-Test/src/Main-app.xml" package-file-name="ANE-Bugsnag_(Actionscript)">
+          <AirSigningOptions keystore-path="$MODULE_DIR$/../../Apps/ios_development.p12" provisioning-profile-path="$MODULE_DIR$/../../Apps/iOS_Team_Provisioning_Profile_.mobileprovision" />
+        </packaging-ios>
+      </configuration>
+    </configurations>
+    <compiler-options />
+  </component>
+  <component name="NewModuleRootManager" inherit-compiler-output="true">
+    <exclude-output />
+    <content url="file://$MODULE_DIR$">
+      <sourceFolder url="file://$MODULE_DIR$/actionscript/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/ANE-Bugsnag-Test/src" isTestSource="false" />
+    </content>
+    <orderEntry type="jdk" jdkName="air_sdk" jdkType="Flex SDK Type (new)" />
+    <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="library" exported="" name="ANEBugsnap" level="project" />
+    <orderEntry type="module-library" exported="">
+      <library type="flex">
+        <properties id="ae8f547a-f572-4071-b4b4-d7bebbedc471" />
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/bin/ANEBugsnag.ane!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+  </component>
+</module>

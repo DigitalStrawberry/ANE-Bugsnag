@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<application xmlns="http://ns.adobe.com/air/application/17.0">
+
+	<id>com.ane-bugsnag-test</id>
+	<filename>ANE-Bugsnag-Test</filename>
+	<name>ANE Bugsnag Test</name>
+	<versionNumber>0.0.0</versionNumber>
+		         
+
+	<!-- Settings for the application's initial window. Required. -->
+	<initialWindow>
+		<content>[This value will be overwritten by Flash Builder in the output app.xml]</content>
+        <renderMode>cpu</renderMode>
+		<requestedDisplayResolution>high</requestedDisplayResolution>
+		<autoOrients>true</autoOrients>
+        <fullScreen>true</fullScreen>
+        <visible>true</visible>
+    </initialWindow>
+
+
+	<android>
+        <manifestAdditions><![CDATA[
+			<manifest android:installLocation="auto">
+				<uses-sdk android:minSdkVersion="8" />
+			
+			    <uses-permission android:name="android.permission.INTERNET" />
+				<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+				<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+				<uses-permission android:name="android.permission.READ_PHONE_STATE" />
+				
+			</manifest>
+			
+		]]></manifestAdditions>
+    </android>
+    <iPhone>
+        <InfoAdditions><![CDATA[
+			<key>UIDeviceFamily</key>
+			<array>
+				<string>1</string>
+				<string>2</string>
+			</array>
+		]]></InfoAdditions>
+        <requestedDisplayResolution>high</requestedDisplayResolution>
+    </iPhone>
+	<extensions>
+    <extensionID>com.bugsnag.ANEBugsnag</extensionID>
+    </extensions>
+</application>

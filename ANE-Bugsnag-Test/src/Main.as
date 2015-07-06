@@ -6,10 +6,10 @@ package
 
 	import flash.display.MovieClip;
 
-	import flash.display.Sprite;
 	import flash.display.StageAlign;
 	import flash.display.StageScaleMode;
 	import flash.errors.IOError;
+	import flash.events.Event;
 	import flash.events.MouseEvent;
 	import flash.events.UncaughtErrorEvent;
 	import flash.text.TextField;
@@ -48,19 +48,17 @@ package
 			addChild(feedback);
 
 			createButtons();
+
+			// You MUST initialize Bugsnag after the ADDED_TO_STAGE event, otherwise it
+			// is possible to get a crash on iOS.
+			addEventListener(Event.ADDED_TO_STAGE, initialize);
 		}
 
 
 		private function createButtons():void
 		{
 			// Row
-			var tf:TextField = createButton("Initialize");
-			tf.x = 10;
-			tf.y = 10;
-			tf.addEventListener(MouseEvent.MOUSE_DOWN, initialize);
-			addChild(tf);
-
-			tf = createButton("Set User Data");
+			var tf:TextField = createButton("Set User Data");
 			tf.x = 170;
 			tf.y = 10;
 			tf.addEventListener(MouseEvent.MOUSE_DOWN, setUserData);
@@ -149,7 +147,7 @@ package
 			return textField;
 		}
 
-		private function initialize(event:MouseEvent):void
+		private function initialize(event:Event):void
 		{
 			Bugsnag.init(IOS_KEY, ANDROID_KEY);
 			loaderInfo.uncaughtErrorEvents.addEventListener(UncaughtErrorEvent.UNCAUGHT_ERROR, Bugsnag.handleUncaughtError);

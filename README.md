@@ -46,6 +46,16 @@ Start off by initializing the Bugsnag extension with your API key:
 Bugsnag.init("IOS_KEY", "ANDROID_KEY");
 ```
 
+> *NOTE*: If you want to initialize Bugsnag when your application starts, you need to do so after the ```ADDED_TO_STAGE``` event fires. Otherwise a crash can occur on iOS.
+
+```
+addEventListener(Event.ADDED_TO_STAGE, init);
+private function init(event:Event):void
+{
+    Bugsnag.init("IOS_KEY", "ANROID_KEY");
+}
+```
+
 ### Catch Unhandled Errors (Optional)
 
 Bugsnag can catch and report unhandled errors in Actionscript. You'll need access to your app's loaderInfo object do to this. Use the following code:

@@ -110,6 +110,11 @@ package com.bugsnag
 		 */
 		public static function notify(name:String, message:String, severity:String = "error", stackTrace:String = null):void
 		{
+			if(actionscriptKey == null)
+			{
+				return;
+			}
+
 			var stackTraceLines:Array = StackTraceParser.parse(stackTrace);
 
 			var obj:Object = {};

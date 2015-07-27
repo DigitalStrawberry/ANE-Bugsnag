@@ -130,8 +130,12 @@ package com.bugsnag
 			event.user = _user;
 
 			// Grouping hash
-			var line:StackTraceLine = stackTraceLines[0];
-			event.groupingHash = line.file + ':' + line.method + ":" + line.lineNumber + ':' + name + ':' + message;
+			event.groupingHash = name + ':' + message;
+			if(stackTraceLines.length > 0)
+			{
+				var line:StackTraceLine = stackTraceLines[0];
+				event.groupingHash = line.file + ':' + line.method + ":" + line.lineNumber + ':' + name + ':' + message;
+			}
 
 			// App
 			event.app = {};

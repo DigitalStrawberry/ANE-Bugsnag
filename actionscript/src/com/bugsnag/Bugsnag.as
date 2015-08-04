@@ -116,10 +116,14 @@ package com.bugsnag
 			}
 
 			var stackTraceLines:Array = StackTraceParser.parse(stackTrace);
+			if(stackTraceLines.length == 0)
+			{
+				stackTraceLines = StackTraceParser.parse(new Error().getStackTrace());
+			}
 
 			var obj:Object = {};
 			obj.apiKey = actionscriptKey;
-			obj.notifier = {name: "Bugsnag ANE", version: "1.0.0", url: "http://www.digitalstrawberry.com"};
+			obj.notifier = {name: "Bugsnag ANE", version: "1.0.0", url: "https://github.com/DigitalStrawberry/ANE-Bugsnag"};
 
 			// Event
 			var event:Object = {};

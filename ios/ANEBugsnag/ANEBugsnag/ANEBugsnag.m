@@ -21,6 +21,11 @@ DEFINE_ANE_FUNCTION(init)
     
     NSLog(@"Bugsnag ANE setup");
     [Bugsnag startBugsnagWithApiKey:apiKey];
+    
+    // Set default id to IDFV to be consistant with Actionscript
+    NSUUID *idfv = [[UIDevice currentDevice] identifierForVendor];
+    NSString *deviceId = [idfv UUIDString];
+    [[Bugsnag configuration] setUser:deviceId withName:nil andEmail:nil];
 
     return NULL;
 }

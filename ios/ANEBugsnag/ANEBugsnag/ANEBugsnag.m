@@ -10,7 +10,7 @@
 @import UIKit;
 
 
-DEFINE_ANE_FUNCTION(initialize)
+DEFINE_ANE_FUNCTION(init)
 {
     NSString *apiKey = nil;
     
@@ -19,6 +19,7 @@ DEFINE_ANE_FUNCTION(initialize)
         return NULL;
     }
     
+    NSLog(@"Bugsnag ANE setup");
     [Bugsnag startBugsnagWithApiKey:apiKey];
 
     return NULL;
@@ -140,6 +141,8 @@ DEFINE_ANE_FUNCTION(removeTab)
 
 DEFINE_ANE_FUNCTION(crash)
 {
+    NSLog(@"Manually forced crash");
+    
     int *x = NULL;
     *x = 42;
     
@@ -186,7 +189,7 @@ void ANEBugsnagContextInitializer(void* extData, const uint8_t* ctxType, FRECont
     // Define the functions that can be called from AS
     static FRENamedFunction functionMap[] =
     {
-        MAP_FUNCTION(initialize, NULL),
+        MAP_FUNCTION(init, NULL),
         MAP_FUNCTION(setContext, NULL),
         MAP_FUNCTION(setUser, NULL),
         MAP_FUNCTION(setReleaseStage, NULL),

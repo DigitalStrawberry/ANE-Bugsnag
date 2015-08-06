@@ -45,7 +45,7 @@ package com.bugsnag
 
 				if(iOS && _iosKey != null && _iosKey != "")
 				{
-					_mExtContext.call("initialize", _iosKey);
+					_mExtContext.call("init", _iosKey);
 				}
 				else if(android && _androidKey != null && _androidKey != "")
 				{

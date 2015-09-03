@@ -6,7 +6,7 @@
 
 #ifdef __OBJC__
 #import <Foundation/Foundation.h>
-#define DEFINE_ANE_FUNCTION(fn) FREObject (fn)(FREContext context, void* functionData, uint32_t argc, FREObject argv[])
-#define MAP_FUNCTION(fn, data) { (const uint8_t*)(#fn), (data), &(fn) }
+#define DEFINE_ANE_FUNCTION(fn) FREObject (ANEBugsnag_ ## fn)(FREContext context, void* functionData, uint32_t argc, FREObject argv[])
+#define MAP_FUNCTION(fn, data) { (const uint8_t*)(#fn), (data), &(ANEBugsnag_ ## fn) }
 #define DISPATCH_STATUS_EVENT(extensionContext, code, status) FREDispatchStatusEventAsync((extensionContext), (uint8_t*)code, (uint8_t*)status)
 #endif

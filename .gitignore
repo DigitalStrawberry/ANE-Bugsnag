@@ -3,3 +3,4 @@ ANE-Bugsnag-Test/bin/*
 android/bin/*
 android/gen/*
 ANE-Bugsnag-Test/src/ANEBugsnag.ane
+.idea/workspace.xml

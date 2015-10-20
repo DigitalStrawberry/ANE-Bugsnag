@@ -129,7 +129,6 @@ package com.bugsnag
 				catch(error:Error)
 				{
 					trace(error);
-					Bugsnag.notifyError(error);
 				}
 			}
 

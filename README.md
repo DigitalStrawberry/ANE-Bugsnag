@@ -17,7 +17,7 @@ This extension requires iOS 6.0 or higher and Android 2.2 (API level 8) or highe
 
 ## Binary Files
 
-You can find the final compiled ANE binary along with the swc file in the bin folder.
+You can find the final compiled ANE binary along with the swc file in the bin folder or on the [releases](https://github.com/DigitalStrawberry/ANE-Bugsnag/releases) page.
 
 
 ## Setup the Extension
@@ -104,19 +104,28 @@ Bugsnag.notifyError(new Error(), Severity.WARN);
 You aren't limited to tracking only ```Error``` objects. You can send a generic error:
 
 ```
-Bugsnag.notify("Big Error", "A really big error has occured");
+Bugsnag.notify("Big Error", "A really big error has occurred");
 ```
 
 You can also add a severity to it:
 
 ```
-Bugsnag.notify("Big Error", "A really big error has occured", Severity.INFO);
+Bugsnag.notify("Big Error", "A really big error has occurred", Severity.INFO);
 ```
 
-It may be helpful to provide a stacktrace of where the error occured:
+It may be helpful to provide a stacktrace of where the error occurred:
 
 ```
-Bugsnag.notify("Big Error", "A really big error has occured", Severity.INFO, new Error().getStackTrace());
+Bugsnag.notify("Big Error", "A really big error has occurred", Severity.INFO, new Error().getStackTrace());
+```
+
+You can also provide additional metadata for errors that will show up in a custom tab on the Bugsnag dashboard. Each metadata object will display as a new tab.
+
+```
+var metadata:Metadata = new Metadata("Error Details");
+metadata.addAttribute("Description", "Something went really wrong");
+
+Bugsnag.notify("Big Error", "A really big error has occurred", Serverity.INFO, new Error().getStackTrace(), new <Metadata>[metadata]);
 ```
 
 ## Additional Settings
@@ -179,6 +188,8 @@ Or even remove entire custom tabs:
 ```
 Bugsnag.removeTab("My Tab");
 ```
+
+Note that custom tabs will show up for every error that you log, including native errors. You should use the ```metadata``` parameter of the ```notify``` method if you only want to include custom data for a single event.
 
 ### Context
 

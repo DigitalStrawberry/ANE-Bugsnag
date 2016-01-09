@@ -107,8 +107,9 @@ package com.bugsnag
 		 * @param message
 		 * @param severity
 		 * @param stackTrace
+		 * @param metadata
 		 */
-		public static function notify(name:String, message:String, severity:String = "error", stackTrace:String = null):void
+		public static function notify(name:String, message:String, severity:String = "error", stackTrace:String = null, metadata:Vector.<Metadata> = null):void
 		{
 			if(actionscriptKey == null)
 			{
@@ -124,6 +125,15 @@ package com.bugsnag
 			var obj:Object = {};
 			obj.apiKey = actionscriptKey;
 			obj.notifier = {name: "Bugsnag ANE", version: "1.0.0", url: "https://github.com/DigitalStrawberry/ANE-Bugsnag"};
+
+			// Merge metadata
+			if(metadata != null && metadata.length > 0)
+			{
+				for each(var data:Metadata in metadata)
+				{
+					_tabs[data.name] = data.data;
+				}
+			}
 
 			// Event
 			var event:Object = {};
@@ -173,6 +183,15 @@ package com.bugsnag
 			request.url = BUGSNAG_URL;
 			request.data = JSON.stringify(obj);
 			_requests.request(request);
+
+			// Cleanup metadata
+			if(metadata != null && metadata.length > 0)
+			{
+				for each(var data:Metadata in metadata)
+				{
+					removeParameterFromObject(_tabs, data.name);
+				}
+			}
 		}
 
 

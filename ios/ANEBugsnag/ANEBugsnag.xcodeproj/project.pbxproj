@@ -7,7 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		0A1808681BD6B1C400257B54 /* libc++.1.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 0A1808671BD6B1C400257B54 /* libc++.1.dylib */; };
 		0A3FC91C1B33654B003C2164 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0A740C231A237E1B0020B517 /* Foundation.framework */; };
 		0AD59A4E1B336AD6005CC764 /* Bugsnag.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0AD59A4D1B336AD6005CC764 /* Bugsnag.framework */; };
 		0AD59A5F1B339618005CC764 /* ANEBugsnag.m in Sources */ = {isa = PBXBuildFile; fileRef = 0AD59A5B1B339618005CC764 /* ANEBugsnag.m */; };
@@ -28,7 +27,6 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		0A1808671BD6B1C400257B54 /* libc++.1.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = "libc++.1.dylib"; path = "../../../../../../../usr/lib/libc++.1.dylib"; sourceTree = "<group>"; };
 		0A740C041A237AD30020B517 /* libANEBugsnag.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libANEBugsnag.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		0A740C231A237E1B0020B517 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
 		0ACB9D981BD6A2EE00BD9239 /* libc++.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = "libc++.tbd"; path = "usr/lib/libc++.tbd"; sourceTree = SDKROOT; };
@@ -46,7 +44,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				0A1808681BD6B1C400257B54 /* libc++.1.dylib in Frameworks */,
 				0AD59A4E1B336AD6005CC764 /* Bugsnag.framework in Frameworks */,
 				0A3FC91C1B33654B003C2164 /* Foundation.framework in Frameworks */,
 				0AF04E031B3356CF00F6517D /* SystemConfiguration.framework in Frameworks */,
@@ -59,7 +56,6 @@
 		0A740BFB1A237AD30020B517 = {
 			isa = PBXGroup;
 			children = (
-				0A1808671BD6B1C400257B54 /* libc++.1.dylib */,
 				0ACB9D981BD6A2EE00BD9239 /* libc++.tbd */,
 				0AD59A591B339618005CC764 /* ANEBugsnag */,
 				0AD59A4D1B336AD6005CC764 /* Bugsnag.framework */,

@@ -124,7 +124,10 @@ package com.bugsnag
 					fileStream.readBytes(byteArray);
 					fileStream.close();
 
-					_requests = byteArray.readObject() as Vector.<URLRequest>;
+					if(byteArray != null && byteArray.readObject() != null)
+					{
+						_requests = byteArray.readObject() as Vector.<URLRequest>;
+					}
 				}
 				catch(error:Error)
 				{

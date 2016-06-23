@@ -9,7 +9,7 @@
               <dependency linkage="Merged" />
             </entry>
           </entries>
-          <sdk name="19.0.0.193" />
+          <sdk name="21.0.0.176" />
         </dependencies>
         <compiler-options>
           <map>
@@ -20,7 +20,7 @@
         <packaging-air-desktop />
         <packaging-android enabled="true" use-generated-descriptor="false" custom-descriptor-path="$MODULE_DIR$/ANE-Bugsnag-Test/src/Main-app.xml" package-file-name="ANE-Bugsnag_(Actionscript)" />
         <packaging-ios enabled="true" use-generated-descriptor="false" custom-descriptor-path="$MODULE_DIR$/ANE-Bugsnag-Test/src/Main-app.xml" package-file-name="ANE-Bugsnag_(Actionscript)">
-          <AirSigningOptions keystore-path="$MODULE_DIR$/../../Apps/ios_development.p12" provisioning-profile-path="$MODULE_DIR$/../../Apps/iOS_Team_Provisioning_Profile_.mobileprovision" />
+          <AirSigningOptions keystore-path="$DOCUMENTS$/Apps/libs/Apps/ios_development.p12" provisioning-profile-path="$DOCUMENTS$/Apps/libs/Apps/iOS_Team_Provisioning_Profile_.mobileprovision" />
         </packaging-ios>
       </configuration>
     </configurations>
@@ -32,7 +32,7 @@
       <sourceFolder url="file://$MODULE_DIR$/actionscript/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/ANE-Bugsnag-Test/src" isTestSource="false" />
     </content>
-    <orderEntry type="jdk" jdkName="19.0.0.193" jdkType="Flex SDK Type (new)" />
+    <orderEntry type="jdk" jdkName="21.0.0.176" jdkType="Flex SDK Type (new)" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="library" exported="" name="ANEBugsnap" level="project" />
     <orderEntry type="module-library" exported="">

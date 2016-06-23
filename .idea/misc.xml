@@ -13,7 +13,7 @@
     <ConfirmationsSetting value="0" id="Add" />
     <ConfirmationsSetting value="0" id="Remove" />
   </component>
-  <component name="ProjectRootManager" version="2" languageLevel="JDK_1_6" default="false" assert-keyword="true" jdk-15="true" project-jdk-name="19.0.0.193" project-jdk-type="Flex SDK Type (new)" />
+  <component name="ProjectRootManager" version="2" languageLevel="JDK_1_6" default="false" assert-keyword="true" jdk-15="true" project-jdk-name="Android SDK" project-jdk-type="Android SDK" />
   <component name="ProjectType">
     <option name="id" value="Android" />
   </component>

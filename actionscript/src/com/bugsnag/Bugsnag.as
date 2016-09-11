@@ -383,6 +383,12 @@ package com.bugsnag
 		{
 			var xml:XML = NativeApplication.nativeApplication.applicationDescriptor;
 			var ns:Namespace = xml.namespace();
+
+			if(xml.ns::versionLabel.children().length() != 0)
+			{
+				return xml.ns::versionLabel;
+			}
+
 			return xml.ns::versionNumber;
 		}
 

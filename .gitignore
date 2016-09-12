@@ -6,3 +6,4 @@ ANE-Bugsnag-Test/src/ANEBugsnag.ane
 .idea/workspace.xml
 ios/ANEBugsnag/build
 ios/ANEBugsnag/ANEBugsnag.xcodeproj/project.xcworkspace/xcshareddata
+ios/ANEBugsnag/ANEBugsnag.xcodeproj/xcuserdata/*

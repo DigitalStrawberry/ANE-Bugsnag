@@ -8,7 +8,7 @@ This is an Adobe Air Native Extension for the [Bugsnag](https://bugsnag.com/) bu
 
 ## Version
 
-This extension uses the Bugsnag SDK version 4.0.9 for iOS and SDK version 3.2.6 for Android.
+This extension uses the Bugsnag SDK version 4.0.9 for iOS and SDK version 3.6.0 for Android.
 
 
 ## Requirements

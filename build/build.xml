@@ -68,14 +68,14 @@
             <classpath>
                 <pathelement location="${android.sdk}/platforms/android-${android.version}/android.jar"/>
                 <pathelement location="${flex.sdk}/lib/android/FlashRuntimeExtensions.jar"/>
-                <pathelement location="../android/libs/bugsnag-android-3.2.6.jar" />
+                <pathelement location="../android/libs/bugsnag-android-3.6.0.jar" />
             </classpath>
         </javac>
         
         <mkdir dir="../temp/android/"/>
         <jar basedir="../android/temp/classes" destfile="../temp/android/lib${name}.jar"/>
         
-        <copy tofile="../temp/android/bugsnag-android-3.2.6.jar" file="../android/libs/bugsnag-android-3.2.6.jar" overwrite="true" />
+        <copy tofile="../temp/android/bugsnag-android-3.6.0.jar" file="../android/libs/bugsnag-android-3.6.0.jar" overwrite="true" />
         
         <delete dir="../android/temp"/>
     </target>

@@ -4,21 +4,33 @@
 <dict>
 	<key>files</key>
 	<dict>
+		<key>Headers/BSGKSCrashReportWriter.h</key>
+		<data>
+		58hTFFxvkaFCyMGlDPpLiXYGJyk=
+		</data>
 		<key>Headers/Bugsnag.h</key>
 		<data>
-		N36oThpTomdiuOIxrhlcWafJd9s=
+		Lg1lZcfnROZ4lHuFgEQC+TPSJyk=
+		</data>
+		<key>Headers/BugsnagBreadcrumb.h</key>
+		<data>
+		njsKxSYRLJ77hlpb6S3FCrxY08g=
 		</data>
 		<key>Headers/BugsnagConfiguration.h</key>
 		<data>
-		Y2Dr+IlUWoRjhRw8c9sw+e0anic=
+		PFUUqAQ/BgSrr82OBLSHZTUpTlU=
+		</data>
+		<key>Headers/BugsnagCrashReport.h</key>
+		<data>
+		CgcxBooElLBiCARJPeGWkgOgi+w=
 		</data>
 		<key>Headers/BugsnagMetaData.h</key>
 		<data>
-		kb/ldKC1IRuEmjkotnOW24og6Lw=
+		gaL49CyZFhFW/2Y2ddmP4iz/gDg=
 		</data>
 		<key>Info.plist</key>
 		<data>
-		h/q0mRJwI3DuOSQG5O57WEHArJY=
+		Tmufa756+wsAd+mr2mWvHLUv4y0=
 		</data>
 		<key>Modules/module.modulemap</key>
 		<data>
@@ -27,22 +39,83 @@
 	</dict>
 	<key>files2</key>
 	<dict>
+		<key>Headers/BSGKSCrashReportWriter.h</key>
+		<dict>
+			<key>hash</key>
+			<data>
+			58hTFFxvkaFCyMGlDPpLiXYGJyk=
+			</data>
+			<key>hash2</key>
+			<data>
+			eoLXUoBfkWL6cC7ctD9a25ZoH2fSBM46y4aOcMBD1bI=
+			</data>
+		</dict>
 		<key>Headers/Bugsnag.h</key>
-		<data>
-		N36oThpTomdiuOIxrhlcWafJd9s=
-		</data>
+		<dict>
+			<key>hash</key>
+			<data>
+			Lg1lZcfnROZ4lHuFgEQC+TPSJyk=
+			</data>
+			<key>hash2</key>
+			<data>
+			XPDBW0QC5YZxYF1Y+TNKI3fJFaBy5ysypDOPsDAtlUk=
+			</data>
+		</dict>
+		<key>Headers/BugsnagBreadcrumb.h</key>
+		<dict>
+			<key>hash</key>
+			<data>
+			njsKxSYRLJ77hlpb6S3FCrxY08g=
+			</data>
+			<key>hash2</key>
+			<data>
+			qCkDvxalX/2Yl6ptmONJCaNo0aTJ1sax62aMcNgB4og=
+			</data>
+		</dict>
 		<key>Headers/BugsnagConfiguration.h</key>
-		<data>
-		Y2Dr+IlUWoRjhRw8c9sw+e0anic=
-		</data>
+		<dict>
+			<key>hash</key>
+			<data>
+			PFUUqAQ/BgSrr82OBLSHZTUpTlU=
+			</data>
+			<key>hash2</key>
+			<data>
+			UsgUO06qMGifCMuOaDP6ua0/BmIOHrCa/4+d2ZMtXyQ=
+			</data>
+		</dict>
+		<key>Headers/BugsnagCrashReport.h</key>
+		<dict>
+			<key>hash</key>
+			<data>
+			CgcxBooElLBiCARJPeGWkgOgi+w=
+			</data>
+			<key>hash2</key>
+			<data>
+			DHgpiurD8AI2+hR5dc7vKz0qNQ45KM5q6muAmjV8W+A=
+			</data>
+		</dict>
 		<key>Headers/BugsnagMetaData.h</key>
-		<data>
-		kb/ldKC1IRuEmjkotnOW24og6Lw=
-		</data>
+		<dict>
+			<key>hash</key>
+			<data>
+			gaL49CyZFhFW/2Y2ddmP4iz/gDg=
+			</data>
+			<key>hash2</key>
+			<data>
+			kgidyY2qWdOnseUTglJj68RerK9hoelPqEdGWcJLztI=
+			</data>
+		</dict>
 		<key>Modules/module.modulemap</key>
-		<data>
-		FxbqTBrU5fhr2oWbNXj74SK6BWM=
-		</data>
+		<dict>
+			<key>hash</key>
+			<data>
+			FxbqTBrU5fhr2oWbNXj74SK6BWM=
+			</data>
+			<key>hash2</key>
+			<data>
+			UenzKFkHc1g+NBpcFE2llkXWfix0rQrzxvggWIBXzkY=
+			</data>
+		</dict>
 	</dict>
 	<key>rules</key>
 	<dict>

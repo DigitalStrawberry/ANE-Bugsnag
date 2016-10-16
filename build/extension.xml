@@ -1,4 +1,5 @@
-<extension xmlns="http://ns.adobe.com/air/extension/17.0">
+<?xml version="1.0" encoding="utf-8" ?>
+<extension xmlns="http://ns.adobe.com/air/extension/20.0">
     <id>com.bugsnag.ANEBugsnag</id>
     <versionNumber>1.0</versionNumber> 
     <platforms>

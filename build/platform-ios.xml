@@ -1,12 +1,17 @@
-<platform xmlns="http://ns.adobe.com/air/extension/17.0">
+<?xml version="1.0" encoding="utf-8" ?>
+<platform xmlns="http://ns.adobe.com/air/extension/20.0">
     <sdkVersion>6.0</sdkVersion>
     <linkerOptions>
 
         <!-- Include libc++ library -->
         <option>-lc++</option>
+        <!-- Include libz library -->
+        <option>-lz</option>
+        <!-- System frameworks -->
+        <option>-framework MessageUI</option>
+        <option>-framework SystemConfiguration</option>
 
     </linkerOptions>
-
 
     <packagedDependencies>
         <packagedDependency>Bugsnag.framework</packagedDependency>

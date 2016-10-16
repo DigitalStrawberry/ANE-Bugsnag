@@ -12,6 +12,7 @@
 		0AD59A5F1B339618005CC764 /* ANEBugsnag.m in Sources */ = {isa = PBXBuildFile; fileRef = 0AD59A5B1B339618005CC764 /* ANEBugsnag.m */; };
 		0AD59A601B339618005CC764 /* FRETypeUtils.m in Sources */ = {isa = PBXBuildFile; fileRef = 0AD59A5E1B339618005CC764 /* FRETypeUtils.m */; };
 		0AF04E031B3356CF00F6517D /* SystemConfiguration.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0AF04E021B3356CF00F6517D /* SystemConfiguration.framework */; };
+		C38FE9E81DAFB80700C5F852 /* MessageUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C38FE9E71DAFB80700C5F852 /* MessageUI.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -29,7 +30,6 @@
 /* Begin PBXFileReference section */
 		0A740C041A237AD30020B517 /* libANEBugsnag.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libANEBugsnag.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		0A740C231A237E1B0020B517 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
-		0ACB9D981BD6A2EE00BD9239 /* libc++.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = "libc++.tbd"; path = "usr/lib/libc++.tbd"; sourceTree = SDKROOT; };
 		0AD59A4D1B336AD6005CC764 /* Bugsnag.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = Bugsnag.framework; sourceTree = "<group>"; };
 		0AD59A5A1B339618005CC764 /* ANEBugsnag-Prefix.pch */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "ANEBugsnag-Prefix.pch"; sourceTree = "<group>"; };
 		0AD59A5B1B339618005CC764 /* ANEBugsnag.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = ANEBugsnag.m; sourceTree = "<group>"; };
@@ -37,6 +37,7 @@
 		0AD59A5D1B339618005CC764 /* FRETypeUtils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FRETypeUtils.h; sourceTree = "<group>"; };
 		0AD59A5E1B339618005CC764 /* FRETypeUtils.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = FRETypeUtils.m; sourceTree = "<group>"; };
 		0AF04E021B3356CF00F6517D /* SystemConfiguration.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SystemConfiguration.framework; path = System/Library/Frameworks/SystemConfiguration.framework; sourceTree = SDKROOT; };
+		C38FE9E71DAFB80700C5F852 /* MessageUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MessageUI.framework; path = System/Library/Frameworks/MessageUI.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -47,6 +48,7 @@
 				0AD59A4E1B336AD6005CC764 /* Bugsnag.framework in Frameworks */,
 				0A3FC91C1B33654B003C2164 /* Foundation.framework in Frameworks */,
 				0AF04E031B3356CF00F6517D /* SystemConfiguration.framework in Frameworks */,
+				C38FE9E81DAFB80700C5F852 /* MessageUI.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -56,7 +58,7 @@
 		0A740BFB1A237AD30020B517 = {
 			isa = PBXGroup;
 			children = (
-				0ACB9D981BD6A2EE00BD9239 /* libc++.tbd */,
+				C38FE9E71DAFB80700C5F852 /* MessageUI.framework */,
 				0AD59A591B339618005CC764 /* ANEBugsnag */,
 				0AD59A4D1B336AD6005CC764 /* Bugsnag.framework */,
 				0AF04E021B3356CF00F6517D /* SystemConfiguration.framework */,
@@ -238,7 +240,11 @@
 				GCC_PRECOMPILE_PREFIX_HEADER = NO;
 				GCC_PREFIX_HEADER = "ANEBugsnag/ANEBugsnag-Prefix.pch";
 				IPHONEOS_DEPLOYMENT_TARGET = 6.0;
-				OTHER_LDFLAGS = "-ObjC";
+				OTHER_LDFLAGS = (
+					"-ObjC",
+					"-lz",
+					"-lc++",
+				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 			};
@@ -255,7 +261,11 @@
 				GCC_PRECOMPILE_PREFIX_HEADER = NO;
 				GCC_PREFIX_HEADER = "ANEBugsnag/ANEBugsnag-Prefix.pch";
 				IPHONEOS_DEPLOYMENT_TARGET = 6.0;
-				OTHER_LDFLAGS = "-ObjC";
+				OTHER_LDFLAGS = (
+					"-ObjC",
+					"-lz",
+					"-lc++",
+				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 			};

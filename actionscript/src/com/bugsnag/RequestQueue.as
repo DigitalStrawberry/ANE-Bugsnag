@@ -7,7 +7,7 @@ package com.bugsnag
 	import flash.filesystem.FileStream;
 	import flash.net.URLLoader;
 	import flash.net.URLRequest;
-	import flash.net.registerClassAlias;
+	import flash.net.URLRequestMethod;
 	import flash.utils.ByteArray;
 	import flash.utils.setTimeout;
 
@@ -28,8 +28,6 @@ package com.bugsnag
 			_urlLoader = new URLLoader();
 			_urlLoader.addEventListener(Event.COMPLETE, requestComplete, false, 0, true);
 			_urlLoader.addEventListener(IOErrorEvent.IO_ERROR, requestError, false, 0, true);
-
-			registerClassAlias('UrlRequest', URLRequest);
 
 			load();
 		}
@@ -91,10 +89,32 @@ package com.bugsnag
 		{
 			try
 			{
-				var byteArray:ByteArray = new ByteArray();
-				byteArray.writeObject(_requests);
-
 				var file:File = File.applicationStorageDirectory.resolvePath(FILENAME);
+
+				// If there are no requests to save then we can delete the file if it exists
+				if(_requests.length == 0)
+				{
+					if(file.exists)
+					{
+						file.deleteFileAsync();
+					}
+					return;
+				}
+
+				// Serialize the list of URLRequests manually
+				var byteArray:ByteArray = new ByteArray();
+
+				// First write the number of requests that the file will contain
+				byteArray.writeUnsignedInt(_requests.length);
+
+				// Now write each request's url and data
+				for each(var request:URLRequest in _requests)
+				{
+					byteArray.writeUTF(request.url);
+					byteArray.writeUTF(request.data as String);
+				}
+
+				// Finally, write the bytes to the file
 				file.preventBackup = true;
 
 				var fileStream:FileStream = new FileStream();
@@ -124,9 +144,27 @@ package com.bugsnag
 					fileStream.readBytes(byteArray);
 					fileStream.close();
 
-					if(byteArray != null && byteArray.readObject() != null)
+					// First read the number of requests saved
+					var numRequests:uint = byteArray.readUnsignedInt();
+
+					// The file is invalid, there will never be 0 requests saved
+					if(numRequests == 0)
 					{
-						_requests = byteArray.readObject() as Vector.<URLRequest>;
+						file.deleteFileAsync();
+					}
+					else
+					{
+						// Reconstruct the list of URLRequests
+						_requests = new <URLRequest>[];
+						for (var i:int = 0; i < numRequests; ++i)
+						{
+							// Read request's url, followed by data
+							var savedRequest:URLRequest = new URLRequest();
+							savedRequest.method = URLRequestMethod.POST;
+							savedRequest.url = byteArray.readUTF();
+							savedRequest.data = byteArray.readUTF();
+							_requests[i] = savedRequest;
+						}
 					}
 				}
 				catch(error:Error)

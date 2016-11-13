@@ -11,6 +11,8 @@ package com.bugsnag
 
 	public class Bugsnag extends EventDispatcher
 	{
+		internal static const TAG:String = "[BugsnagANE]";
+
 		private static const BUGSNAG_URL:String = "https://notify.bugsnag.com";
 
 		private static var _mExtContext:ExtensionContext = null;
@@ -78,7 +80,7 @@ package com.bugsnag
 
 			if(event.error != null && event.error is Error)
 			{
-				trace(event.error);
+				trace(TAG, event.error);
 				notifyError(event.error);
 			}
 		}

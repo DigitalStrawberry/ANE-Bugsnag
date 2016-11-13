@@ -104,7 +104,7 @@ package com.bugsnag
 			}
 			catch(error:Error)
 			{
-				trace(error);
+				trace(Bugsnag.TAG, error);
 				Bugsnag.notifyError(error);
 
 			}
@@ -131,7 +131,7 @@ package com.bugsnag
 				}
 				catch(error:Error)
 				{
-					trace(error);
+					trace(Bugsnag.TAG, error);
 				}
 			}
 

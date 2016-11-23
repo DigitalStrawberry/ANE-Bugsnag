@@ -2,6 +2,7 @@ package com.bugsnag
 {
 	import flash.desktop.NativeApplication;
 	import flash.display.LoaderInfo;
+	import flash.events.ErrorEvent;
 	import flash.events.EventDispatcher;
 	import flash.events.UncaughtErrorEvent;
 	import flash.external.ExtensionContext;
@@ -78,10 +79,24 @@ package com.bugsnag
 			event.stopImmediatePropagation();
 			event.stopPropagation();
 
-			if(event.error != null && event.error is Error)
+			if(event.error != null)
 			{
-				trace(TAG, event.error);
-				notifyError(event.error);
+				if(event.error is Error)
+				{
+					trace(TAG, event.error);
+					notifyError(event.error);
+				}
+				else if(event.error is ErrorEvent)
+				{
+					var errorEvent:ErrorEvent = event.error as ErrorEvent;
+					trace(TAG, "Async error occurred:", errorEvent.text);
+					notify("Error #" + errorEvent.errorID, "(Asynchronous) " + errorEvent.text);
+				}
+				else
+				{
+					trace(TAG, "Custom error:", event.error.toString());
+					notify("Custom Error", event.error.toString());
+				}
 			}
 		}
 

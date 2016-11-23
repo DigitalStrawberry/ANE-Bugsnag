@@ -26,7 +26,7 @@ You can find the final compiled ANE binary along with the swc file in the bin fo
 
 When using the extension on the Android platform you'll need to add the following permissions in the app manifest file:
 
-```
+```xml
 <uses-permission android:name="android.permission.INTERNET" />
 <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
@@ -42,7 +42,7 @@ Before you can begin tracking bugs you will need to set up a two new projects on
 
 Start off by initializing the Bugsnag extension with your API key:
 
-```
+```as3
 Bugsnag.init("IOS_KEY", "ANDROID_KEY");
 ```
 
@@ -50,13 +50,13 @@ Bugsnag.init("IOS_KEY", "ANDROID_KEY");
 
 Bugsnag can catch and report unhandled errors in Actionscript. You'll need access to your app's loaderInfo object do to this. Use the following code:
 
-```
+```as3
 loaderInfo.uncaughtErrorEvents.addEventListener(UncaughtErrorEvent.UNCAUGHT_ERROR, Bugsnag.handleUncaughtError);
 ```
 
 Alternatively you can catch unhandled errors yourself and pass them directly into Bugsnag for reporting:
 
-```
+```as3
 Bugsnag.notifyError(event.error);
 ```
 
@@ -66,8 +66,14 @@ Unhandled errors and crashes in the native code are already set up and do not re
 
 If you'd like Bugsnag to record stack traces for errors (highly recommended), add the following code:
 
-```
-Bugsnag.getStackTrace = function(error:Error):String{return error.getStackTrace();}
+```as3
+Bugsnag.getStackTrace = function(error:*):String {
+	if(error is Error)
+    {
+        return Error(error).getStackTrace();
+    }
+    return null;
+}
 ```
 
 ## Using the Extension
@@ -82,7 +88,7 @@ Native exceptions and crashes are reported automatically.
 
 You can easily track handled errors using the following code:
 
-```
+```as3
 try
 {
 
@@ -95,7 +101,7 @@ catch(e:Error)
 
 You can also pass in a severity value to the method:
 
-```
+```as3
 Bugsnag.notifyError(new Error(), Severity.WARN);
 ```
 
@@ -103,25 +109,25 @@ Bugsnag.notifyError(new Error(), Severity.WARN);
 
 You aren't limited to tracking only ```Error``` objects. You can send a generic error:
 
-```
+```as3
 Bugsnag.notify("Big Error", "A really big error has occurred");
 ```
 
 You can also add a severity to it:
 
-```
+```as3
 Bugsnag.notify("Big Error", "A really big error has occurred", Severity.INFO);
 ```
 
 It may be helpful to provide a stacktrace of where the error occurred:
 
-```
+```as3
 Bugsnag.notify("Big Error", "A really big error has occurred", Severity.INFO, new Error().getStackTrace());
 ```
 
 You can also provide additional metadata for errors that will show up in a custom tab on the Bugsnag dashboard. Each metadata object will display as a new tab.
 
-```
+```as3
 var metadata:Metadata = new Metadata("Error Details");
 metadata.addAttribute("Description", "Something went really wrong");
 
@@ -134,7 +140,7 @@ Bugsnag.notify("Big Error", "A really big error has occurred", Serverity.INFO, n
 
 You can set custom data for users to track their errors:
 
-```
+```as3
 Bugsnag.setUser("123456", "user_123456", "user123456@example.com");
 ```
 
@@ -144,7 +150,7 @@ By default the iOS extension will use the IDFV for the user id. Android will gen
 
 You can tell Bugsnag which release stage your app is in to more easily group errors:
 
-```
+```as3
 Bugsnag.releaseStage = ReleaseStage.DEVELOPMENT;
 ```
 
@@ -155,7 +161,7 @@ By default the release stage is set to ```PRODUCTION```.
 
 You can enable or disable auto notification of unhandled exceptions:
 
-```
+```as3
 Bugsnag.autoNotify = false;
 ```
 
@@ -163,7 +169,7 @@ Bugsnag.autoNotify = false;
 
 You can also tell Bugsnag to only notify errors in certain production stages:
 
-```
+```as3
 Bugsnag.notifyReleaseStages = [ReleaseStage.PRODUCTION];
 ```
 
@@ -173,19 +179,19 @@ The code above restricts automatic notification to production stages only. Error
 
 You can add custom data and custom tabs to your error reports. The following code adds custom data to the 'user' tab:
 
-```
+```as3
 Bugsnag.addAttribute("City", "New York", "User");
 ```
 
 You can also remove attributes:
 
-```
+```as3
 Bugsnag.removeAttribute("Attribute", "Tab Name");
 ```
 
 Or even remove entire custom tabs:
 
-```
+```as3
 Bugsnag.removeTab("My Tab");
 ```
 
@@ -195,7 +201,7 @@ Note that custom tabs will show up for every error that you log, including nativ
 
 The context represents the state the application is in before the error. You can set the context:
 
-```
+```as3
 Bugsnag.context = "Store";
 ```
 

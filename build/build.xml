@@ -46,7 +46,6 @@
 
         <exec executable="xcodebuild" failonerror="true" dir="../ios/${name}/">
             <arg line="-project ${name}.xcodeproj"/>
-            <arg line="-arch i386"/>
             <arg line="-sdk ${ios.simulatorsdkversion}"/>
             <arg line="-alltargets"/>
             <arg line="-configuration Release"/>
@@ -69,6 +68,7 @@
                 <pathelement location="${android.sdk}/platforms/android-${android.version}/android.jar"/>
                 <pathelement location="${flex.sdk}/lib/android/FlashRuntimeExtensions.jar"/>
                 <pathelement location="../android/libs/bugsnag-android-3.7.0.jar" />
+                <pathelement location="../android/libs/android-support-annotations.jar" />
             </classpath>
         </javac>
         

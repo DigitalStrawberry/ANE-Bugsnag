@@ -5,7 +5,7 @@
 
 #import "FlashRuntimeExtensions.h"
 #import "FRETypeUtils.h"
-#import <Bugsnag/Bugsnag.h>
+#import "Bugsnag.h"
 #import <sys/utsname.h>
 @import UIKit;
 

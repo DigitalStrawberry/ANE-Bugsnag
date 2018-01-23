@@ -13,8 +13,4 @@
 
     </linkerOptions>
 
-    <packagedDependencies>
-        <packagedDependency>Bugsnag.framework</packagedDependency>
-    </packagedDependencies>
-
 </platform>

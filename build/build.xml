@@ -115,14 +115,6 @@
     <!-- Package -->
     <target name="package" description="Create the extension package">
 
-        <!-- Copy over the Bugsnag framework to be compiled into the ANE -->
-        <copy todir="../temp/ios/Bugsnag.framework">
-            <fileset dir="../ios/ANEBugsnag/Bugsnag.framework"/>
-        </copy>
-        <copy todir="../temp/ios-simulator/Bugsnag.framework">
-            <fileset dir="../ios/ANEBugsnag/Bugsnag.framework"/>
-        </copy>
-
         <exec executable="${flex.sdk}/bin/adt${bin.ext}" failonerror="true" dir="../temp">
             <arg value="-package"/>
             <arg value="-target"/>

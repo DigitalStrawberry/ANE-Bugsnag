@@ -117,6 +117,7 @@
             <arg line="-platform iPhone-ARM -platformoptions ../build/platform-ios.xml -C ios/ ."/>
             <arg line="-platform iPhone-x86 -platformoptions ../build/platform-ios.xml -C ios-simulator/ ."/>
             <arg line="-platform Android-ARM -platformoptions ../build/platform-android.xml -C android/ ."/>
+            <arg line="-platform Android-ARM64 -platformoptions ../build/platform-android.xml -C android/ ."/>
             <arg line="-platform Android-x86 -platformoptions ../build/platform-android.xml -C android/ ." />
             <arg line="-platform default -C default/ ."/>
         </exec>

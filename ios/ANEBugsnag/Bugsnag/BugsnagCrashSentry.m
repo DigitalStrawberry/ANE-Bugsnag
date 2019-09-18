@@ -19,7 +19,7 @@ NSUInteger const BSG_MAX_STORED_REPORTS = 12;
 
 - (void)install:(BugsnagConfiguration *)config
       apiClient:(BugsnagErrorReportApiClient *)apiClient
-        onCrash:(BSG_KSReportWriteCallback)onCrash {
+        onCrash:(BSGReportCallback)onCrash {
 
     BugsnagSink *sink = [[BugsnagSink alloc] initWithApiClient:apiClient];
     [BSG_KSCrash sharedInstance].sink = sink;
@@ -28,7 +28,6 @@ NSUInteger const BSG_MAX_STORED_REPORTS = 12;
         BSG_KSCDeleteOnSucess;
     [BSG_KSCrash sharedInstance].onCrash = onCrash;
     [BSG_KSCrash sharedInstance].maxStoredReports = BSG_MAX_STORED_REPORTS;
-    [BSG_KSCrash sharedInstance].demangleLanguages = 0;
 
     if (!config.autoNotify) {
         bsg_kscrash_setHandlingCrashTypes(BSG_KSCrashTypeUserReported);
@@ -42,13 +41,24 @@ NSUInteger const BSG_MAX_STORED_REPORTS = 12;
 }
 
 - (void)reportUserException:(NSString *)reportName
-                     reason:(NSString *)reportMessage {
+                     reason:(NSString *)reportMessage
+          originalException:(NSException *)ex
+               handledState:(NSDictionary *)handledState
+                   appState:(NSDictionary *)appState
+          callbackOverrides:(NSDictionary *)overrides
+                   metadata:(NSDictionary *)metadata
+                     config:(NSDictionary *)config
+               discardDepth:(int)depth {
 
     [[BSG_KSCrash sharedInstance] reportUserException:reportName
                                                reason:reportMessage
-                                             language:NULL
-                                           lineOfCode:@""
-                                           stackTrace:@[]
+                                    originalException:ex
+                                         handledState:handledState
+                                             appState:appState
+                                    callbackOverrides:overrides
+                                             metadata:metadata
+                                               config:config
+                                         discardDepth:depth
                                      terminateProgram:NO];
 }
 

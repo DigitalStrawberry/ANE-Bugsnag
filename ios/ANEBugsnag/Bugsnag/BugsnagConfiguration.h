@@ -42,7 +42,10 @@
 typedef void (^BugsnagNotifyBlock)(BugsnagCrashReport *_Nonnull report);
 
 /**
- *  A handler for modifying data before sending it to Bugsnag
+ *  A handler for modifying data before sending it to Bugsnag.
+ *
+ * beforeSendBlocks will be invoked on a dedicated
+ * background queue, which will be different from the queue where the block was originally added.
  *
  *  @param rawEventData The raw event data written at crash time. This
  *                      includes data added in onCrashHandler.
@@ -52,6 +55,13 @@ typedef void (^BugsnagNotifyBlock)(BugsnagCrashReport *_Nonnull report);
  */
 typedef bool (^BugsnagBeforeSendBlock)(NSDictionary *_Nonnull rawEventData,
                                        BugsnagCrashReport *_Nonnull reports);
+
+/**
+ * A configuration block for modifying a session. Intended for internal usage only.
+ *
+ * @param sessionPayload The session about to be delivered
+ */
+typedef void(^BeforeSendSession)(NSMutableDictionary *_Nonnull sessionPayload);
 
 /**
  *  A handler for modifying data before sending it to Bugsnag
@@ -70,10 +80,6 @@ typedef NSDictionary *_Nullable (^BugsnagBeforeNotifyHook)(
  *  The API key of a Bugsnag project
  */
 @property(readwrite, retain, nullable) NSString *apiKey;
-/**
- *  The URL used to notify Bugsnag
- */
-@property(readwrite, retain, nullable) NSURL *notifyURL;
 /**
  *  The release stage of the application, such as production, development, beta
  *  et cetera
@@ -100,7 +106,7 @@ typedef NSDictionary *_Nullable (^BugsnagBeforeNotifyHook)(
 /**
  * The current user
  */
-@property(nullable) BugsnagUser *currentUser;
+@property(retain, nullable) BugsnagUser *currentUser;
 
 /**
  *  Additional information about the state of the app or environment at the
@@ -127,26 +133,78 @@ BugsnagBreadcrumbs *breadcrumbs;
  */
 @property(readonly, strong, nullable)
     NSArray<BugsnagBeforeSendBlock> *beforeSendBlocks;
+
+/**
+ *  Hooks for modifying sessions before they are sent to Bugsnag. Intended for internal use only by React Native/Unity.
+ */
+@property(readonly, strong, nullable)
+NSArray<BeforeSendSession> *beforeSendSessionBlocks;
+
 /**
  *  Optional handler invoked when a crash or fatal signal occurs
  */
 @property void (*_Nullable onCrashHandler)
     (const BSG_KSCrashReportWriter *_Nonnull writer);
+
 /**
  *  YES if uncaught exceptions should be reported automatically
  */
 @property BOOL autoNotify;
 
 /**
- * Determines whether app sessions should be tracked automatically. By default this value is false.
+ * Determines whether app sessions should be tracked automatically. By default this value is true.
+ * If this value is updated after +[Bugsnag start] is called, only subsequent automatic sessions
+ * will be captured.
  */
 @property BOOL shouldAutoCaptureSessions;
 
 /**
- * Set the endpoint to which tracked sessions reports are sent. This defaults to https://sessions.bugsnag.com,
- * but should be overridden if you are using Bugsnag On-premise, to point to your own Bugsnag endpoint.
+ * Whether the app should report out of memory events which terminate the app
+ * When NO, this setting overrides reportBackgroundOOMs.
  */
-@property(readwrite, retain, nullable) NSURL *sessionURL;
+@property BOOL reportOOMs;
+
+/**
+ * Whether the app should report out of memory events which terminate the app
+ * while the app is in the background. This setting has no effect when reportOOMs is NO.
+ */
+@property BOOL reportBackgroundOOMs;
+
+/**
+ * Retrieves the endpoint used to notify Bugsnag of errors
+ *
+ * NOTE: If you want to set this value, you should do so via setEndpointsForNotify:sessions: instead.
+ *
+ * @see setEndpointsForNotify:sessions:
+ */
+@property(readonly, retain, nullable) NSURL *notifyURL;
+
+/**
+ * Retrieves the endpoint used to send tracked sessions to Bugsnag
+ *
+ * NOTE: If you want to set this value, you should do so via setEndpointsForNotify:sessions: instead.
+ *
+ * @see setEndpointsForNotify:sessions:
+ */
+@property(readonly, retain, nullable) NSURL *sessionURL;
+
+/**
+ * Set the endpoints to send data to. By default we'll send error reports to
+ * https://notify.bugsnag.com, and sessions to https://sessions.bugsnag.com, but you can
+ * override this if you are using Bugsnag Enterprise to point to your own Bugsnag endpoint.
+ *
+ * Please note that it is recommended that you set both endpoints. If the notify endpoint is
+ * missing, an assertion will be thrown. If the session endpoint is missing, a warning will be
+ * logged and sessions will not be sent automatically.
+ *
+ * @param notify the notify endpoint
+ * @param sessions the sessions endpoint
+ *
+ * @throws an assertion if the notify endpoint is not a valid URL
+ */
+
+- (void)setEndpointsForNotify:(NSString *_Nonnull)notify
+                     sessions:(NSString *_Nonnull)sessions NS_SWIFT_NAME(setEndpoints(notify:sessions:));
 
 /**
  *  Set user metadata
@@ -166,6 +224,13 @@ BugsnagBreadcrumbs *breadcrumbs;
  *  @param block A block which returns YES if the report should be sent
  */
 - (void)addBeforeSendBlock:(BugsnagBeforeSendBlock _Nonnull)block;
+
+/**
+ *  Add a callback to be invoked before a session is sent to Bugsnag. Intended for internal usage only.
+ *
+ *  @param block A block which can modify the session
+ */
+- (void)addBeforeSendSession:(BeforeSendSession _Nonnull)block;
 
 /**
  * Clear all callbacks
@@ -190,7 +255,9 @@ BugsnagBreadcrumbs *breadcrumbs;
 - (NSDictionary *_Nonnull)errorApiHeaders;
 - (NSDictionary *_Nonnull)sessionApiHeaders;
 
-@property(nullable) NSString *codeBundleId;
-@property(nullable) NSString *notifierType;
+@property(retain, nullable) NSString *codeBundleId;
+@property(retain, nullable) NSString *notifierType;
+
+- (BOOL)hasValidApiKey;
 
 @end

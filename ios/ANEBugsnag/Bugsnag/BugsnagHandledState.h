@@ -17,7 +17,8 @@ typedef NS_ENUM(NSUInteger, SeverityReasonType) {
     UserSpecifiedSeverity,
     UserCallbackSetSeverity,
     PromiseRejection,
-    LogMessage
+    LogMessage,
+    LikelyOutOfMemory,
 };
 
 @interface BugsnagHandledState : NSObject
@@ -40,6 +41,11 @@ typedef NS_ENUM(NSUInteger, SeverityReasonType) {
                     (SeverityReasonType)severityReason
                                       severity:(BSGSeverity)severity
                                      attrValue:(NSString *)attrValue;
+
+- (instancetype)initWithSeverityReason:(SeverityReasonType)severityReason
+                              severity:(BSGSeverity)severity
+                             unhandled:(BOOL)unhandled
+                             attrValue:(NSString *)attrValue;
 
 - (NSDictionary *)toJson;
 

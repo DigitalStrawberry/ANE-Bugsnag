@@ -27,6 +27,7 @@
 #import "BSG_KSCrashSentry_NSException.h"
 #import "BSG_KSCrashSentry_Private.h"
 #include "BSG_KSMach.h"
+#include "BSG_KSCrashC.h"
 
 //#define BSG_KSLogger_LocalLevel TRACE
 #import "BSG_KSLogger.h"
@@ -47,11 +48,21 @@ static NSUncaughtExceptionHandler *bsg_g_previousUncaughtExceptionHandler;
 /** Context to fill with crash information. */
 static BSG_KSCrash_SentryContext *bsg_g_context;
 
+static NSException *bsg_lastHandledException = NULL;
+
 // ============================================================================
 #pragma mark - Callbacks -
 // ============================================================================
 
+
 // Avoiding static methods due to linker issue.
+/**
+ Capture exception details and write a new report. If the exception was
+ recorded before, no new report will be generated.
+
+ @param exception The exception to process
+ */
+void bsg_recordException(NSException *exception);
 
 /** Our custom excepetion handler.
  * Fetch the stack trace from the exception and write a report.
@@ -74,6 +85,30 @@ void bsg_ksnsexc_i_handleException(NSException *exception) {
             bsg_kscrashsentry_uninstall(BSG_KSCrashTypeAll);
         }
 
+        bsg_recordException(exception);
+
+        BSG_KSLOG_DEBUG(
+            @"Crash handling complete. Restoring original handlers.");
+        bsg_kscrashsentry_uninstall(BSG_KSCrashTypeAll);
+
+        if (bsg_g_previousUncaughtExceptionHandler != NULL) {
+            BSG_KSLOG_DEBUG(@"Calling original exception handler.");
+            bsg_g_previousUncaughtExceptionHandler(exception);
+        }
+    }
+}
+
+void bsg_recordException(NSException *exception) {
+    if (bsg_g_installed) {
+        BOOL previouslyHandled = exception == bsg_lastHandledException;
+        if (previouslyHandled) {
+            BSG_KSLOG_DEBUG(@"Handled exception previously, "
+                            @"exiting exception recorder.");
+            return;
+        }
+        bsg_lastHandledException = exception;
+        BSG_KSLOG_DEBUG(@"Writing exception info into a new report");
+
         BSG_KSLOG_DEBUG(@"Suspending all threads.");
         bsg_kscrashsentry_suspendThreads();
 
@@ -94,16 +129,9 @@ void bsg_ksnsexc_i_handleException(NSException *exception) {
         bsg_g_context->stackTraceLength = (int)numFrames;
 
         BSG_KSLOG_DEBUG(@"Calling main crash handler.");
-        bsg_g_context->onCrash();
-
-        BSG_KSLOG_DEBUG(
-            @"Crash handling complete. Restoring original handlers.");
-        bsg_kscrashsentry_uninstall(BSG_KSCrashTypeAll);
-
-        if (bsg_g_previousUncaughtExceptionHandler != NULL) {
-            BSG_KSLOG_DEBUG(@"Calling original exception handler.");
-            bsg_g_previousUncaughtExceptionHandler(exception);
-        }
+        char errorClass[21];
+        strncpy(errorClass, bsg_g_context->NSException.name, sizeof(errorClass));
+        bsg_g_context->onCrash('e', errorClass, crashContext());
     }
 }
 

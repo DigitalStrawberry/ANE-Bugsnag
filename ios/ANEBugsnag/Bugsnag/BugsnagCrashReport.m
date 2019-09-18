@@ -18,7 +18,6 @@
 #import "BugsnagHandledState.h"
 #import "BugsnagLogger.h"
 #import "BugsnagKeys.h"
-#import "NSDictionary+BSG_Merge.h"
 #import "BugsnagKSCrashSysInfoParser.h"
 #import "BugsnagSession.h"
 #import "BSG_RFC3339DateTool.h"
@@ -70,7 +69,8 @@ NSMutableDictionary *BSGFormatFrame(NSDictionary *frame,
 }
 
 NSString *_Nonnull BSGParseErrorClass(NSDictionary *error,
-                                      NSString *errorType) {
+                                      NSString *errorType,
+                                      NSString *fallbackValue) {
     NSString *errorClass;
 
     if ([errorType isEqualToString:BSGKeyCppException]) {
@@ -86,7 +86,7 @@ NSString *_Nonnull BSGParseErrorClass(NSDictionary *error,
     }
 
     if (!errorClass) { // use a default value
-        errorClass = @"Exception";
+        errorClass = fallbackValue.length > 0 ? fallbackValue : @"Exception";
     }
     return errorClass;
 }
@@ -177,6 +177,20 @@ static NSString *const DEFAULT_EXCEPTION_TYPE = @"cocoa";
 - (NSDictionary *)BSG_mergedInto:(NSDictionary *)dest;
 @end
 
+@interface RegisterErrorData : NSObject
+@property (nonatomic, strong) NSString *errorClass;
+@property (nonatomic, strong) NSString *errorMessage;
++ (instancetype)errorDataFromThreads:(NSArray *)threads;
+- (instancetype)initWithClass:(NSString *_Nonnull)errorClass message:(NSString *_Nonnull)errorMessage NS_DESIGNATED_INITIALIZER;
+@end
+
+@interface FallbackReportData : NSObject
+@property (nonatomic, strong) NSString *errorClass;
+@property (nonatomic, getter=isUnhandled) BOOL unhandled;
+@property (nonatomic) BSGSeverity severity;
+- (instancetype)initWithMetadata:(NSString *)metadata;
+@end
+
 @interface BugsnagCrashReport ()
 
 /**
@@ -203,62 +217,101 @@ static NSString *const DEFAULT_EXCEPTION_TYPE = @"cocoa";
  *  User-provided exception metadata
  */
 @property(nonatomic, readwrite, copy, nullable) NSDictionary *customException;
-@property(nonatomic) BugsnagSession *session;
+@property(nonatomic, strong) BugsnagSession *session;
 
+@property (nonatomic, readwrite, getter=isIncomplete) BOOL incomplete;
 @end
 
 @implementation BugsnagCrashReport
 
 - (instancetype)initWithKSReport:(NSDictionary *)report {
-    if (self = [super init]) {
-        _notifyReleaseStages =
-            [report valueForKeyPath:@"user.config.notifyReleaseStages"];
-        _releaseStage = BSGParseReleaseStage(report);
+    return [self initWithKSReport:report fileMetadata:@""];
+}
 
+- (instancetype)initWithKSReport:(NSDictionary *)report
+                    fileMetadata:(NSString *)metadata {
+    if (self = [super init]) {
         _error = [report valueForKeyPath:@"crash.error"];
         _errorType = _error[BSGKeyType];
-        _errorClass = BSGParseErrorClass(_error, _errorType);
-        _errorMessage = BSGParseErrorMessage(report, _error, _errorType);
-        _binaryImages = report[@"binary_images"];
-        _threads = [report valueForKeyPath:@"crash.threads"];
-        _breadcrumbs = BSGParseBreadcrumbs(report);
-        _severity = BSGParseSeverity(
-            [report valueForKeyPath:@"user.state.crash.severity"]);
-        _depth = [[report valueForKeyPath:@"user.state.crash.depth"]
-            unsignedIntegerValue];
-        _dsymUUID = [report valueForKeyPath:@"system.app_uuid"];
-        _deviceAppHash = [report valueForKeyPath:@"system.device_app_hash"];
-        _metaData =
-            [report valueForKeyPath:@"user.metaData"] ?: [NSDictionary new];
-        _context = BSGParseContext(report, _metaData);
-        _deviceState = BSGParseDeviceState(report);
-        _device = BSGParseDevice(report);
-        _app = BSGParseApp(report[BSGKeySystem]);
-        _appState = BSGParseAppState(report[BSGKeySystem]);
-        _groupingHash = BSGParseGroupingHash(report, _metaData);
-        _overrides = [report valueForKeyPath:@"user.overrides"];
-        _customException = BSGParseCustomException(report, [_errorClass copy],
-                                                   [_errorMessage copy]);
+        if ([[report valueForKeyPath:@"user.state.didOOM"] boolValue]) {
+            _errorClass = BSGParseErrorClass(_error, _errorType, nil);
+            _errorMessage = BSGParseErrorMessage(report, _error, _errorType);
+            _breadcrumbs = [report valueForKeyPath:@"user.state.oom.breadcrumbs"];
+            _app = [report valueForKeyPath:@"user.state.oom.app"];
+            _device = [report valueForKeyPath:@"user.state.oom.device"];
+            _releaseStage = [report valueForKeyPath:@"user.state.oom.app.releaseStage"];
+            _handledState = [BugsnagHandledState handledStateWithSeverityReason:LikelyOutOfMemory];
+            _deviceAppHash = [report valueForKeyPath:@"user.state.oom.device.id"];
+            _metaData = [NSMutableDictionary new];
+            NSDictionary *sessionData = [report valueForKeyPath:@"user.state.oom.session"];
+            if (sessionData) {
+                _session = [[BugsnagSession alloc] initWithDictionary:sessionData];
+                _session.unhandledCount += 1; // include own event
+                if (_session.user) {
+                    _metaData = @{@"user": [_session.user toJson]};
+                }
+            }
+        } else {
+            FallbackReportData *fallback = [[FallbackReportData alloc] initWithMetadata:metadata];
+            _notifyReleaseStages =
+                [report valueForKeyPath:@"user.config.notifyReleaseStages"];
+            _releaseStage = BSGParseReleaseStage(report);
+            _incomplete = report.count == 0;
+            _threads = [report valueForKeyPath:@"crash.threads"];
+            RegisterErrorData *data = [RegisterErrorData errorDataFromThreads:_threads];
+            if (data) {
+                _errorClass = data.errorClass ?: fallback.errorClass;
+                _errorMessage = data.errorMessage;
+            } else {
+                _errorClass = BSGParseErrorClass(_error, _errorType, fallback.errorClass);
+                _errorMessage = BSGParseErrorMessage(report, _error, _errorType);
+            }
+            _binaryImages = report[@"binary_images"];
+            _breadcrumbs = BSGParseBreadcrumbs(report);
+            _dsymUUID = [report valueForKeyPath:@"system.app_uuid"];
+            _deviceAppHash = [report valueForKeyPath:@"system.device_app_hash"];
+            _metaData =
+                [report valueForKeyPath:@"user.metaData"] ?: [NSDictionary new];
+            _context = BSGParseContext(report, _metaData);
+            _deviceState = BSGParseDeviceState(report);
+            _device = BSGParseDevice(report);
+            _app = BSGParseApp(report);
+            _appState = BSGParseAppState(report[BSGKeySystem], [report valueForKeyPath:@"user.config.appVersion"]);
+            _groupingHash = BSGParseGroupingHash(report, _metaData);
+            _overrides = [report valueForKeyPath:@"user.overrides"];
+            _customException = BSGParseCustomException(report, [_errorClass copy],
+                                                       [_errorMessage copy]);
 
-        NSDictionary *recordedState =
-            [report valueForKeyPath:@"user.handledState"];
+            NSDictionary *recordedState =
+                [report valueForKeyPath:@"user.handledState"];
 
-        if (recordedState) {
-            _handledState =
-                [[BugsnagHandledState alloc] initWithDictionary:recordedState];
-        } else { // the event was unhandled.
-            BOOL isSignal = [BSGKeySignal isEqualToString:_errorType];
-            SeverityReasonType severityReason =
-                isSignal ? Signal : UnhandledException;
-            _handledState = [BugsnagHandledState
-                handledStateWithSeverityReason:severityReason
-                                      severity:BSGSeverityError
-                                     attrValue:_errorClass];
-        }
-        _severity = _handledState.currentSeverity;
+            if (recordedState) {
+                _handledState =
+                    [[BugsnagHandledState alloc] initWithDictionary:recordedState];
 
-        if (report[@"user"][@"id"]) {
-            _session = [[BugsnagSession alloc] initWithDictionary:report[@"user"]];
+                // only makes sense to use serialised value for handled exceptions
+                _depth = [[report valueForKeyPath:@"user.depth"]
+                        unsignedIntegerValue];
+            } else if (_errorType != nil) { // the event was unhandled.
+                BOOL isSignal = [BSGKeySignal isEqualToString:_errorType];
+                SeverityReasonType severityReason =
+                    isSignal ? Signal : UnhandledException;
+                _handledState = [BugsnagHandledState
+                    handledStateWithSeverityReason:severityReason
+                                          severity:BSGSeverityError
+                                         attrValue:_errorClass];
+                _depth = 0;
+            } else { // Incomplete report
+                SeverityReasonType severityReason = [fallback isUnhandled] ? UnhandledException : HandledError;
+                _handledState = [BugsnagHandledState handledStateWithSeverityReason:severityReason
+                                                                           severity:fallback.severity
+                                                                          attrValue:nil];
+            }
+            _severity = _handledState.currentSeverity;
+
+            if (report[@"user"][@"id"]) {
+                _session = [[BugsnagSession alloc] initWithDictionary:report[@"user"]];
+            }
         }
     }
     return self;
@@ -464,13 +517,20 @@ initWithErrorName:(NSString *_Nonnull)name
     BSGDictSetSafeObject(event, BSGFormatSeverity(self.severity), BSGKeySeverity);
     BSGDictSetSafeObject(event, [self breadcrumbs], BSGKeyBreadcrumbs);
     BSGDictSetSafeObject(event, metaData, BSGKeyMetaData);
-    
-    NSDictionary *device = [self.device bsg_mergedInto:self.deviceState];
+
+    if ([self isIncomplete]) {
+        BSGDictSetSafeObject(event, @YES, BSGKeyIncomplete);
+    }
+
+    NSDictionary *device = BSGDictMerge(self.device, self.deviceState);
     BSGDictSetSafeObject(event, device, BSGKeyDevice);
     
     NSMutableDictionary *appObj = [NSMutableDictionary new];
     [appObj addEntriesFromDictionary:self.app];
-    [appObj addEntriesFromDictionary:self.appState];
+    
+    for (NSString *key in self.appState) {
+        BSGDictInsertIfNotNil(appObj, self.appState[key], key);
+    }
     
     if (self.dsymUUID) {
         BSGDictInsertIfNotNil(appObj, @[self.dsymUUID], @"dsymUUIDs");
@@ -536,18 +596,13 @@ initWithErrorName:(NSString *_Nonnull)name
 // Build all stacktraces for threads and the error
 - (NSArray *)serializeThreadsWithException:(NSMutableDictionary *)exception {
     NSMutableArray *bugsnagThreads = [NSMutableArray array];
-    for (NSDictionary *thread in [self threads]) {
+
+    for (NSDictionary *thread in self.threads) {
         NSArray *backtrace = thread[@"backtrace"][@"contents"];
         BOOL stackOverflow = [thread[@"stack"][@"overflow"] boolValue];
-        BOOL isCrashedThread = [thread[@"crashed"] boolValue];
+        BOOL isReportingThread = [thread[@"crashed"] boolValue];
         
-        if (isCrashedThread) {
-            NSString *errMsg = [self enhancedErrorMessageForThread:thread];
-            
-            if (errMsg) { // use enhanced error message (currently swift assertions)
-                BSGDictInsertIfNotNil(exception, errMsg, BSGKeyMessage);
-            }
-            
+        if (isReportingThread) {
             NSUInteger seen = 0;
             NSMutableArray *stacktrace = [NSMutableArray array];
 
@@ -559,7 +614,7 @@ initWithErrorName:(NSString *_Nonnull)name
                         BSGDictSetSafeObject(mutableFrame, @YES, BSGKeyIsPC);
                     }
                     if (seen == 2 && !stackOverflow &&
-                        [@[ BSGKeySignal, @"deadlock", BSGKeyMach ]
+                        [@[ BSGKeySignal, BSGKeyMach ]
                             containsObject:[self errorType]]) {
                         BSGDictSetSafeObject(mutableFrame, @YES, BSGKeyIsLR);
                     }
@@ -568,66 +623,117 @@ initWithErrorName:(NSString *_Nonnull)name
                         BSGFormatFrame(mutableFrame, [self binaryImages]));
                 }
             }
-
             BSGDictSetSafeObject(exception, stacktrace, BSGKeyStacktrace);
-        } else {
-            NSMutableArray *threadStack = [NSMutableArray array];
-
-            for (NSDictionary *frame in backtrace) {
-                BSGArrayInsertIfNotNil(
-                    threadStack, BSGFormatFrame(frame, [self binaryImages]));
-            }
-
-            NSMutableDictionary *threadDict = [NSMutableDictionary dictionary];
-            BSGDictSetSafeObject(threadDict, thread[@"index"], BSGKeyId);
-            BSGDictSetSafeObject(threadDict, threadStack, BSGKeyStacktrace);
-            BSGDictSetSafeObject(threadDict, DEFAULT_EXCEPTION_TYPE, BSGKeyType);
-            // only if this is enabled in BSG_KSCrash.
-            if (thread[BSGKeyName]) {
-                BSGDictSetSafeObject(threadDict, thread[BSGKeyName], BSGKeyName);
-            }
-
-            BSGArrayAddSafeObject(bugsnagThreads, threadDict);
         }
+        [self serialiseThread:bugsnagThreads thread:thread backtrace:backtrace reportingThread:isReportingThread];
     }
     return bugsnagThreads;
 }
 
-/**
- * Returns the enhanced error message for the thread, or nil if none exists.
- *
- * This relies very heavily on heuristics rather than any documented APIs.
- */
-- (NSString *)enhancedErrorMessageForThread:(NSDictionary *)thread {
-    NSDictionary *notableAddresses = thread[@"notable_addresses"];
-    NSMutableArray *msgBuffer = [NSMutableArray new];
-    BOOL hasReservedWord = NO;
-    
-    if (notableAddresses) {
-        for (NSString *key in notableAddresses) {
-            if (![key hasPrefix:@"stack"]) { // skip stack frames, only use register values
-                NSDictionary *data = notableAddresses[key];
-                NSString *contentValue = data[@"value"];
-                
-                hasReservedWord = hasReservedWord || [self isReservedWord:contentValue];
-                
-                // must be a string that isn't a reserved word and isn't a filepath
-                if ([@"string" isEqualToString:data[BSGKeyType]]
-                    && ![self isReservedWord:contentValue]
-                    && !([[contentValue componentsSeparatedByString:@"/"] count] > 2)) {
-                    
-                    [msgBuffer addObject:contentValue];
-                }
+- (void)serialiseThread:(NSMutableArray *)bugsnagThreads
+                 thread:(NSDictionary *)thread
+              backtrace:(NSArray *)backtrace
+          reportingThread:(BOOL)isReportingThread {
+    NSMutableArray *threadStack = [NSMutableArray array];
+
+    for (NSDictionary *frame in backtrace) {
+                BSGArrayInsertIfNotNil(
+                    threadStack, BSGFormatFrame(frame, [self binaryImages]));
+            }
+
+    NSMutableDictionary *threadDict = [NSMutableDictionary dictionary];
+    BSGDictSetSafeObject(threadDict, thread[@"index"], BSGKeyId);
+    BSGDictSetSafeObject(threadDict, threadStack, BSGKeyStacktrace);
+    BSGDictSetSafeObject(threadDict, DEFAULT_EXCEPTION_TYPE, BSGKeyType);
+
+    if (isReportingThread) {
+        BSGDictSetSafeObject(threadDict, @YES, @"errorReportingThread");
+    }
+
+    BSGArrayAddSafeObject(bugsnagThreads, threadDict);
+}
+
+- (NSString *_Nullable)enhancedErrorMessageForThread:(NSDictionary *_Nullable)thread {
+    return [self errorMessage];
+}
+
+@end
+
+@implementation FallbackReportData
+
+- (instancetype)initWithMetadata:(NSString *)metadata {
+    if (self = [super init]) {
+        NSString *separator = @"-";
+        NSString *location = metadata;
+        NSRange range = [location rangeOfString:separator options:NSBackwardsSearch];
+        if (range.location != NSNotFound) {
+            _errorClass = [location substringFromIndex:range.location + 1];
+            location = [location substringToIndex:range.location];
+        }
+        range = [location rangeOfString:separator options:NSBackwardsSearch];
+        if (range.location != NSNotFound) {
+            NSString *value = [location substringFromIndex:range.location + 1];
+            _unhandled = ![value isEqualToString:@"h"];
+            location = [location substringToIndex:range.location + 1];
+        } else {
+            _unhandled = YES;
+        }
+        range = [location rangeOfString:separator options:NSBackwardsSearch];
+        if (range.location != NSNotFound) {
+            NSString *value = [location substringFromIndex:range.location];
+            if ([value isEqualToString:@"w"]) {
+                _severity = BSGSeverityWarning;
+            } else if ([value isEqualToString:@"i"]) {
+                _severity = BSGSeverityInfo;
+            } else {
+                _severity = BSGSeverityError;
             }
         }
-        [msgBuffer sortUsingSelector:@selector(localizedCaseInsensitiveCompare:)];
     }
-    
-    if (hasReservedWord && [msgBuffer count] > 0) { // needs to have a reserved word used + a message
-        return [msgBuffer componentsJoinedByString:@" | "];
-    } else {
-        return nil;
+    return self;
+}
+
+@end
+
+@implementation RegisterErrorData
++ (instancetype)errorDataFromThreads:(NSArray *)threads {
+    for (NSDictionary *thread in threads) {
+        if (![thread[@"crashed"] boolValue]) {
+            continue;
+        }
+        NSDictionary *notableAddresses = thread[@"notable_addresses"];
+        NSMutableArray *interestingValues = [NSMutableArray new];
+        NSString *reservedWord = nil;
+
+        for (NSString *key in notableAddresses) {
+            NSDictionary *data = notableAddresses[key];
+            if (![@"string" isEqualToString:data[BSGKeyType]]) {
+                continue;
+            }
+            NSString *contentValue = data[@"value"];
+
+#pragma clang diagnostic push
+#pragma ide diagnostic ignored "OCDFAInspection"
+            if (contentValue == nil || ![contentValue isKindOfClass:[NSString class]]) {
+                continue;
+            }
+#pragma clang diagnostic pop
+
+            if ([self isReservedWord:contentValue]) {
+                reservedWord = contentValue;
+            } else if ([[contentValue componentsSeparatedByString:@"/"] count] <= 2) {
+                // must be a string that isn't a reserved word and isn't a filepath
+                [interestingValues addObject:contentValue];
+            }
+        }
+
+        [interestingValues sortUsingSelector:@selector(localizedCaseInsensitiveCompare:)];
+
+        NSString *message = [interestingValues componentsJoinedByString:@" | "];
+        return [[RegisterErrorData alloc] initWithClass:reservedWord
+                                                message:message];
     }
+    return nil;
 }
 
 /**
@@ -637,9 +743,24 @@ initWithErrorName:(NSString *_Nonnull)name
  *
  * For assert, "assertion failed" will be in one of the registers.
  */
-- (BOOL)isReservedWord:(NSString *)contentValue {
-    return [@"assertion failed" isEqualToString:contentValue]
-    || [@"fatal error" isEqualToString:contentValue];
++ (BOOL)isReservedWord:(NSString *)contentValue {
+    return [@"assertion failed" caseInsensitiveCompare:contentValue] == NSOrderedSame
+    || [@"fatal error" caseInsensitiveCompare:contentValue] == NSOrderedSame
+    || [@"precondition failed" caseInsensitiveCompare:contentValue] == NSOrderedSame;
 }
 
+- (instancetype)init {
+    return [self initWithClass:@"Unknown" message:@"<unset>"];
+}
+
+- (instancetype)initWithClass:(NSString *)errorClass message:(NSString *)errorMessage {
+    if (errorClass.length == 0) {
+        return nil;
+    }
+    if (self = [super init]) {
+        _errorClass = errorClass;
+        _errorMessage = errorMessage;
+    }
+    return self;
+}
 @end

@@ -31,6 +31,7 @@
 #import "BSG_RFC3339DateTool.h"
 #import "BugsnagUser.h"
 #import "BugsnagSessionTracker.h"
+#import "BugsnagLogger.h"
 
 static NSString *const kHeaderApiPayloadVersion = @"Bugsnag-Payload-Version";
 static NSString *const kHeaderApiKey = @"Bugsnag-Api-Key";
@@ -47,6 +48,7 @@ static NSString *const kHeaderApiSentAt = @"Bugsnag-Sent-At";
 @interface BugsnagConfiguration ()
 @property(nonatomic, readwrite, strong) NSMutableArray *beforeNotifyHooks;
 @property(nonatomic, readwrite, strong) NSMutableArray *beforeSendBlocks;
+@property(nonatomic, readwrite, strong) NSMutableArray *beforeSendSessionBlocks;
 @end
 
 @implementation BugsnagConfiguration
@@ -61,9 +63,16 @@ static NSString *const kHeaderApiSentAt = @"Bugsnag-Sent-At";
         _notifyURL = [NSURL URLWithString:BSGDefaultNotifyUrl];
         _beforeNotifyHooks = [NSMutableArray new];
         _beforeSendBlocks = [NSMutableArray new];
+        _beforeSendSessionBlocks = [NSMutableArray new];
         _notifyReleaseStages = nil;
         _breadcrumbs = [BugsnagBreadcrumbs new];
         _automaticallyCollectBreadcrumbs = YES;
+        _shouldAutoCaptureSessions = YES;
+        _reportBackgroundOOMs = NO;
+#if !DEBUG
+        _reportOOMs = YES;
+#endif
+
         if ([NSURLSession class]) {
             _session = [NSURLSession
                 sessionWithConfiguration:[NSURLSessionConfiguration
@@ -86,7 +95,7 @@ static NSString *const kHeaderApiSentAt = @"Bugsnag-Sent-At";
 - (void)setUser:(NSString *)userId
        withName:(NSString *)userName
        andEmail:(NSString *)userEmail {
-    
+
     self.currentUser = [[BugsnagUser alloc] initWithUserId:userId name:userName emailAddress:userEmail];
 
     [self.metaData addAttribute:BSGKeyId withValue:userId toTabWithName:BSGKeyUser];
@@ -100,6 +109,10 @@ static NSString *const kHeaderApiSentAt = @"Bugsnag-Sent-At";
 
 - (void)addBeforeSendBlock:(BugsnagBeforeSendBlock)block {
     [(NSMutableArray *)self.beforeSendBlocks addObject:[block copy]];
+}
+
+- (void)addBeforeSendSession:(BeforeSendSession)block {
+    [(NSMutableArray *)self.beforeSendSessionBlocks addObject:[block copy]];
 }
 
 - (void)clearBeforeSendBlocks {
@@ -120,7 +133,10 @@ static NSString *const kHeaderApiSentAt = @"Bugsnag-Sent-At";
 
 - (void)setReleaseStage:(NSString *)newReleaseStage {
     @synchronized (self) {
+        NSString *key = NSStringFromSelector(@selector(releaseStage));
+        [self willChangeValueForKey:key];
         _releaseStage = newReleaseStage;
+        [self didChangeValueForKey:key];
         [self.config addAttribute:BSGKeyReleaseStage
                         withValue:newReleaseStage
                     toTabWithName:BSGKeyConfig];
@@ -199,20 +215,19 @@ static NSString *const kHeaderApiSentAt = @"Bugsnag-Sent-At";
     }
 }
 
-@synthesize shouldAutoCaptureSessions = _shouldAutoCaptureSessions;
+@synthesize apiKey = _apiKey;
 
-- (BOOL)shouldAutoCaptureSessions {
-    return _shouldAutoCaptureSessions;
+- (NSString *)apiKey {
+    return _apiKey;
 }
 
-- (void)setShouldAutoCaptureSessions:(BOOL)shouldAutoCaptureSessions {
-    @synchronized (self) {
-        _shouldAutoCaptureSessions = shouldAutoCaptureSessions;
-        
-        if (shouldAutoCaptureSessions) { // track any existing sessions
-            BugsnagSessionTracker *sessionTracker = [Bugsnag notifier].sessionTracker;
-            [sessionTracker onAutoCaptureEnabled];
-        }
+- (void)setApiKey:(NSString *)apiKey {
+    if ([apiKey length] > 0) {
+        [self willChangeValueForKey:NSStringFromSelector(@selector(apiKey))];
+        _apiKey = apiKey;
+        [self didChangeValueForKey:NSStringFromSelector(@selector(apiKey))];
+    } else {
+        bsg_log_err(@"Attempted to override non-null API key with nil - ignoring.");
     }
 }
 
@@ -231,4 +246,25 @@ static NSString *const kHeaderApiSentAt = @"Bugsnag-Sent-At";
              kHeaderApiSentAt: [BSG_RFC3339DateTool stringFromDate:[NSDate new]]
              };
 }
+
+- (void)setEndpointsForNotify:(NSString *_Nonnull)notify sessions:(NSString *_Nonnull)sessions {
+    _notifyURL = [NSURL URLWithString:notify];
+    _sessionURL = [NSURL URLWithString:sessions];
+
+    NSAssert([self isValidUrl:_notifyURL], @"Invalid URL supplied for notify endpoint");
+
+    if (![self isValidUrl:_sessionURL]) {
+        _sessionURL = nil;
+    }
+}
+
+- (BOOL)isValidUrl:(NSURL *)url {
+    return url != nil && url.scheme != nil && url.host != nil;
+}
+
+
+- (BOOL)hasValidApiKey {
+    return [_apiKey length] > 0;
+}
+
 @end

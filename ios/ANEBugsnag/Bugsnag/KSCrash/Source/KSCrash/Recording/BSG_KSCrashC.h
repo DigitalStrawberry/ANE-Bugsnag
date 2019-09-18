@@ -94,40 +94,11 @@ void bsg_kscrash_reinstall(const char *const crashReportFilePath,
  */
 void bsg_kscrash_setUserInfoJSON(const char *const userInfoJSON);
 
-/** Set the maximum time to allow the main thread to run without returning.
- * If a task occupies the main thread for longer than this interval, the
- * watchdog will consider the queue deadlocked and shut down the app and write a
- * crash report.
- *
- * Warning: Make SURE that nothing in your app that runs on the main thread
- * takes longer to complete than this value or it WILL get shut down! This
- * includes your app startup process, so you may need to push app initialization
- * to another thread, or perhaps set this to a higher value until your
- * application has been fully initialized.
- *
- * 0 = Disabled.
- *
- * Default: 0
- */
-void bsg_kscrash_setDeadlockWatchdogInterval(double deadlockWatchdogInterval);
-
 /** Set whether or not to print a stack trace to stdout when a crash occurs.
  *
  * Default: false
  */
 void bsg_kscrash_setPrintTraceToStdout(bool printTraceToStdout);
-
-/** If true, search for thread names where appropriate.
- * Thread name searching is not async-safe, and so comes with the risk of
- * timing out and panicking in thread_lock().
- */
-void bsg_kscrash_setSearchThreadNames(bool shouldSearchThreadNames);
-
-/** If true, search for dispatch queue names where appropriate.
- * Queue name searching is not async-safe, and so comes with the risk of
- * timing out and panicking in thread_lock().
- */
-void bsg_kscrash_setSearchQueueNames(bool shouldSearchQueueNames);
 
 /** If true, introspect memory contents during a crash.
  * Any Objective-C objects or C strings near the stack pointer or referenced by
@@ -137,22 +108,6 @@ void bsg_kscrash_setSearchQueueNames(bool shouldSearchQueueNames);
  * Default: false
  */
 void bsg_kscrash_setIntrospectMemory(bool introspectMemory);
-
-/** If true, monitor all Objective-C/Swift deallocations and keep track of any
- * accesses after deallocation.
- *
- * Default: false
- */
-void bsg_kscrash_setCatchZombies(bool catchZombies);
-
-/** List of Objective-C classes that should never be introspected.
- * Whenever a class in this list is encountered, only the class name will be
- * recorded. This can be useful for information security concerns.
- *
- * Default: NULL
- */
-void bsg_kscrash_setDoNotIntrospectClasses(const char **doNotIntrospectClasses,
-                                           size_t length);
 
 /** Set the callback to invoke upon a crash.
  *
@@ -166,7 +121,7 @@ void bsg_kscrash_setDoNotIntrospectClasses(const char **doNotIntrospectClasses,
  * Default: NULL
  */
 void bsg_kscrash_setCrashNotifyCallback(
-    const BSG_KSReportWriteCallback onCrashNotify);
+    const BSGReportCallback onCrashNotify);
 
 /** Report a custom, user defined exception.
  * This can be useful when dealing with scripting languages.
@@ -175,24 +130,29 @@ void bsg_kscrash_setCrashNotifyCallback(
  * application will terminate with an abort().
  *
  * @param name The exception name (for namespacing exception types).
- *
  * @param reason A description of why the exception occurred.
- *
- * @param language A unique language identifier.
- *
- * @param lineOfCode A copy of the offending line of code (NULL = ignore).
- *
- * @param stackTrace JSON encoded array containing stack trace information (one
- * frame per array entry). The frame structure can be anything you want,
- * including bare strings.
- *
+ * @param stackAddresses An array of addresses or NULL
+ * @param stackLength The number of addresses in stackAddresses
+ * @param handledState The severity, reason, and handled-ness of the report
+ * @param appState breadcrumbs and other app environmental info
+ * @param overrides Report fields overridden by callbacks, collated in the
+ *                  final report
+ * @param metadata additional information to attach to the report
+ * @param discardDepth The number of frames to discard from the top of the
+ *                     stacktrace
  * @param terminateProgram If true, do not return from this function call.
  * Terminate the program instead.
  */
 void bsg_kscrash_reportUserException(const char *name, const char *reason,
-                                     const char *language,
-                                     const char *lineOfCode,
-                                     const char *stackTrace,
+                                     uintptr_t *stackAddresses,
+                                     unsigned long stackLength,
+                                     const char *severity,
+                                     const char *handledState,
+                                     const char *overrides,
+                                     const char *metadata,
+                                     const char *appState,
+                                     const char *config,
+                                     int discardDepth,
                                      bool terminateProgram);
 
 /** If YES, user reported exceptions will suspend all threads during report
@@ -215,6 +175,11 @@ void bsg_kscrash_setThreadTracingEnabled(bool threadTracingEnabled);
 
 void bsg_kscrash_setWriteBinaryImagesForUserReported(
     bool writeBinaryImagesForUserReported);
+
+/**
+ * The current crash context
+ */
+BSG_KSCrash_Context *crashContext(void);
 
 #ifdef __cplusplus
 }

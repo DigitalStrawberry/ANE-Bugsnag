@@ -128,13 +128,17 @@
 }
 
 - (NSArray *)allFiles {
+    return [[self allFilesByName] allValues];
+}
+
+- (NSDictionary <NSString *, NSDictionary *> *)allFilesByName {
     NSArray *fileIds = [self fileIds];
-    NSMutableArray *files =
-            [NSMutableArray arrayWithCapacity:[fileIds count]];
+    NSMutableDictionary *files =
+    [NSMutableDictionary dictionaryWithCapacity:[fileIds count]];
     for (NSString *fileId in fileIds) {
         NSDictionary *fileContents = [self fileWithId:fileId];
         if (fileContents != nil) {
-            [files addObject:fileContents];
+            [files setObject:fileContents forKey:fileId];
         }
     }
 
@@ -180,9 +184,9 @@
     }
 }
 
-+ (NSString *)findReportStorePath:(NSString *)customDirectory
-                       bundleName:(NSString *)bundleName {
++ (NSString *)findReportStorePath:(NSString *)customDirectory  {
 
+    NSString *bundleName = [[NSBundle mainBundle] infoDictionary][@"CFBundleName"];
     NSArray *directories = NSSearchPathForDirectoriesInDomains(
             NSCachesDirectory, NSUserDomainMask, YES);
     if ([directories count] == 0) {

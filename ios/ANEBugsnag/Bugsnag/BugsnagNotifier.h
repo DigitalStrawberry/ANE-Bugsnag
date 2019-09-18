@@ -29,7 +29,7 @@
 #import "BugsnagConfiguration.h"
 #import "BugsnagMetaData.h"
 
-@class BSGConnectivity;
+@class BSGConnectivity, BugsnagSessionTracker;
 
 @interface BugsnagNotifier : NSObject <BugsnagMetaDataDelegate>
 
@@ -38,14 +38,20 @@
 @property(nonatomic, readwrite, retain) BugsnagMetaData *_Nonnull state;
 @property(nonatomic, readwrite, retain) NSDictionary *_Nonnull details;
 @property(nonatomic, readwrite, retain) NSLock *_Nonnull metaDataLock;
+@property(nonatomic, readonly) BugsnagSessionTracker *_Nonnull sessionTracker;
 
 @property(nonatomic) BSGConnectivity *_Nonnull networkReachable;
+@property(readonly) BOOL started;
 
 - (instancetype _Nonnull)initWithConfiguration:
     (BugsnagConfiguration *_Nonnull)configuration;
 - (void)start;
 
 - (void)startSession;
+- (void)stopSession;
+- (BOOL)resumeSession;
+
+- (BOOL)appCrashedLastLaunch;
 
 /**
  *  Notify Bugsnag of an exception

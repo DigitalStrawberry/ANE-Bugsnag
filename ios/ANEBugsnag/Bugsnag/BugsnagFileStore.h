@@ -40,6 +40,12 @@
  */
 - (NSArray *)allFiles;
 
+/** Get a list of all files by filename.
+ *
+ * @return A collection of file contents indexed by filename.
+ */
+- (NSDictionary <NSString *, NSDictionary *> *)allFilesByName;
+
 /** Delete a file.
  *
  * @param fileId The file ID.
@@ -67,8 +73,7 @@
 - (NSMutableDictionary *)readFile:(NSString *)path
                             error:(NSError *__autoreleasing *)error;
 
-+ (NSString *)findReportStorePath:(NSString *)customDirectory
-                       bundleName:(NSString *)bundleName;
++ (NSString *)findReportStorePath:(NSString *)customDirectory;
 
 - (NSString *)fileIdFromFilename:(NSString *)filename;
 @end

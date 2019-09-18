@@ -16,6 +16,10 @@ static NSString *const kBugsnagHandledCount = @"handledCount";
 static NSString *const kBugsnagStartedAt = @"startedAt";
 static NSString *const kBugsnagUser = @"user";
 
+@interface BugsnagSession ()
+@property(readwrite, getter=isStopped) BOOL stopped;
+@end
+
 @implementation BugsnagSession
 
 - (instancetype)initWithId:(NSString *_Nonnull)sessionId
@@ -48,6 +52,21 @@ static NSString *const kBugsnagUser = @"user";
     return self;
 }
 
+- (_Nonnull instancetype)initWithId:(NSString *_Nonnull)sessionId
+                          startDate:(NSDate *_Nonnull)startDate
+                               user:(BugsnagUser *_Nullable)user
+                       handledCount:(NSUInteger)handledCount
+                     unhandledCount:(NSUInteger)unhandledCount {
+    if (self = [super init]) {
+        _sessionId = sessionId;
+        _startedAt = startDate;
+        _unhandledCount = unhandledCount;
+        _handledCount = handledCount;
+        _user = user;
+    }
+    return self;
+}
+
 - (NSDictionary *)toJson {
     NSMutableDictionary *dict = [NSMutableDictionary new];
     BSGDictInsertIfNotNil(dict, self.sessionId, kBugsnagSessionId);
@@ -57,6 +76,26 @@ static NSString *const kBugsnagUser = @"user";
         BSGDictInsertIfNotNil(dict, [self.user toJson], kBugsnagUser);
     }
     return [NSDictionary dictionaryWithDictionary:dict];
+}
+
+- (NSDictionary *)toDictionary {
+    NSMutableDictionary *dict = [NSMutableDictionary new];
+    dict[kBugsnagSessionId] = self.sessionId ?: @"";
+    dict[kBugsnagStartedAt] = self.startedAt ? [BSG_RFC3339DateTool stringFromDate:self.startedAt] : @"";
+    dict[kBugsnagHandledCount] = @(self.handledCount);
+    dict[kBugsnagUnhandledCount] = @(self.unhandledCount);
+    if (self.user) {
+        dict[kBugsnagUser] = [self.user toJson];
+    }
+    return dict;
+}
+
+- (void)stop {
+    self.stopped = YES;
+}
+
+- (void)resume {
+    self.stopped = NO;
 }
 
 @end

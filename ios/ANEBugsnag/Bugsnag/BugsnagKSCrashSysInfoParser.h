@@ -8,7 +8,9 @@
 
 #import <Foundation/Foundation.h>
 
+#define PLATFORM_WORD_SIZE sizeof(void*)*8
+
 NSDictionary *_Nonnull BSGParseDevice(NSDictionary *_Nonnull report);
 NSDictionary *_Nonnull BSGParseApp(NSDictionary *_Nonnull report);
-NSDictionary *_Nonnull BSGParseAppState(NSDictionary *_Nonnull report);
+NSDictionary *_Nonnull BSGParseAppState(NSDictionary *_Nonnull report, NSString *_Nullable preferredVersion);
 NSDictionary *_Nonnull BSGParseDeviceState(NSDictionary *_Nonnull report);

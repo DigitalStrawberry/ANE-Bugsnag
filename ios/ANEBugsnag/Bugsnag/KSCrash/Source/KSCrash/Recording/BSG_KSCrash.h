@@ -26,6 +26,7 @@
 
 #import <Foundation/Foundation.h>
 
+#import "BSG_KSSystemCapabilities.h"
 #import "BSG_KSCrashReportFilterCompletion.h"
 #import "BSG_KSCrashReportWriter.h"
 #import "BSG_KSCrashType.h"
@@ -69,48 +70,6 @@ typedef enum {
  */
 @property(nonatomic, readwrite, assign) BSG_KSCrashType handlingCrashTypes;
 
-/** Maximum time to allow the main thread to run without returning.
- * If a task occupies the main thread for longer than this interval, the
- * watchdog will consider the queue deadlocked and shut down the app and write a
- * crash report.
- *
- * Warning: Make SURE that nothing in your app that runs on the main thread
- * takes longer to complete than this value or it WILL get shut down! This
- * includes your app startup process, so you may need to push app initialization
- * to another thread, or perhaps set this to a higher value until your
- * application has been fully initialized.
- *
- * WARNING: This is still causing false positives in some cases. Use at own
- * risk!
- *
- * 0 = Disabled.
- *
- * Default: 0
- */
-@property(nonatomic, readwrite, assign) double deadlockWatchdogInterval;
-
-/** If YES, attempt to fetch thread names for each running thread.
- *
- * WARNING: There is a chance that this will deadlock on a thread_lock() call!
- * If that happens, your crash report will be cut short.
- *
- * Enable at your own risk.
- *
- * Default: NO
- */
-@property(nonatomic, readwrite, assign) bool searchThreadNames;
-
-/** If YES, attempt to fetch dispatch queue names for each running thread.
- *
- * WARNING: There is a chance that this will deadlock on a thread_lock() call!
- * If that happens, your crash report will be cut short.
- *
- * Enable at your own risk.
- *
- * Default: NO
- */
-@property(nonatomic, readwrite, assign) bool searchQueueNames;
-
 /** If YES, introspect memory contents during a crash.
  * Any Objective-C objects or C strings near the stack pointer or referenced by
  * cpu registers or exceptions will be recorded in the crash report, along with
@@ -119,21 +78,6 @@ typedef enum {
  * Default: YES
  */
 @property(nonatomic, readwrite, assign) bool introspectMemory;
-
-/** If YES, monitor all Objective-C/Swift deallocations and keep track of any
- * accesses after deallocation.
- *
- * Default: NO
- */
-@property(nonatomic, readwrite, assign) bool catchZombies;
-
-/** List of Objective-C classes that should never be introspected.
- * Whenever a class in this list is encountered, only the class name will be
- * recorded. This can be useful for information security concerns.
- *
- * Default: nil
- */
-@property(nonatomic, readwrite, retain) NSArray *doNotIntrospectClasses;
 
 /** Get the singleton instance of the crash reporter.
  */
@@ -171,24 +115,27 @@ typedef enum {
  * application will terminate with an abort().
  *
  * @param name The exception name (for namespacing exception types).
- *
- * @param reason A description of why the exception occurred.
- *
- * @param language A unique language identifier.
- *
- * @param lineOfCode A copy of the offending line of code (nil = ignore).
- *
- * @param stackTrace An array of frames (dictionaries or strings) representing
- * the call stack leading to the exception (nil = ignore).
- *
+ * @param reason A description of why the exception occurred
+ * @param exception The exception which was thrown (if any)
+ * @param handledState The severity, reason, and handled-ness of the report
+ * @param appState breadcrumbs and other app environmental info
+ * @param overrides Report fields overridden by callbacks, collated in the
+ *        final report
+ * @param metadata additional information to attach to the report
+ * @param config delivery options
+ * @param depth The number of frames to discard from the top of the stacktrace
  * @param terminateProgram If true, do not return from this function call.
  * Terminate the program instead.
  */
 - (void)reportUserException:(NSString *)name
                      reason:(NSString *)reason
-                   language:(NSString *)language
-                 lineOfCode:(NSString *)lineOfCode
-                 stackTrace:(NSArray *)stackTrace
+          originalException:(NSException *)exception
+               handledState:(NSDictionary *)handledState
+                   appState:(NSDictionary *)appState
+          callbackOverrides:(NSDictionary *)overrides
+                   metadata:(NSDictionary *)metadata
+                     config:(NSDictionary *)config
+               discardDepth:(int)depth
            terminateProgram:(BOOL)terminateProgram;
 
 /** If YES, user reported exceptions will suspend all threads during report

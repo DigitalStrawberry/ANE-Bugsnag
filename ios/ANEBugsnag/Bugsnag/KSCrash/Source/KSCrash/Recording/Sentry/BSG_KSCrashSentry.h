@@ -51,7 +51,7 @@ typedef struct BSG_KSCrash_SentryContext {
     // Caller defined values. Caller must fill these out prior to installation.
 
     /** Called by the crash handler when a crash is detected. */
-    void (*onCrash)(void);
+    void (*onCrash)(char, char[21], void *);
 
     /** If true, will suspend threads for user reported exceptions. */
     bool suspendThreadsForUserReported;
@@ -138,14 +138,13 @@ typedef struct BSG_KSCrash_SentryContext {
         /** The exception name. */
         const char *name;
 
-        /** The language the exception occured in. */
-        const char *language;
-
-        /** The line of code where the exception occurred. Can be NULL. */
-        const char *lineOfCode;
-
-        /** The user-supplied JSON encoded stack trace. */
-        const char *customStackTrace;
+        /** Handled exception report info: */
+        const char *overrides; // info set in callbacks
+        const char *handledState;
+        const char *metadata;
+        const char *state; // breadcrumbs, other shared app state
+        const char *config; // config options which affect report delivery
+        int discardDepth; // number of frames from the top to remove
     } userException;
 
 } BSG_KSCrash_SentryContext;
@@ -163,7 +162,7 @@ typedef struct BSG_KSCrash_SentryContext {
 BSG_KSCrashType
 bsg_kscrashsentry_installWithContext(BSG_KSCrash_SentryContext *context,
                                      BSG_KSCrashType crashTypes,
-                                     void (*onCrash)(void));
+                                     void (*onCrash)(char, char *, void *));
 
 /** Uninstall crash sentry.
  *

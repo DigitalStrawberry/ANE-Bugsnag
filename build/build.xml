@@ -59,7 +59,8 @@
             <classpath>
                 <pathelement location="${android.sdk}/platforms/android-${android.version}/android.jar"/>
                 <pathelement location="${flex.sdk}/lib/android/FlashRuntimeExtensions.jar"/>
-                <pathelement location="../android/libs/bugsnag-android-4.3.0.jar" />
+                <pathelement location="../android/libs/bugsnag-android-4.19.1.jar" />
+                <pathelement location="../android/libs/bugsnag-android-core-4.19.1.jar" />
                 <pathelement location="../android/libs/android-support-annotations.jar" />
             </classpath>
         </javac>
@@ -67,7 +68,8 @@
         <mkdir dir="../temp/android/"/>
         <jar basedir="../android/temp/classes" destfile="../temp/android/lib${name}.jar"/>
         
-        <copy tofile="../temp/android/bugsnag-android-4.3.0.jar" file="../android/libs/bugsnag-android-4.3.0.jar" overwrite="true" />
+        <copy tofile="../temp/android/bugsnag-android-4.19.1.jar" file="../android/libs/bugsnag-android-4.19.1.jar" overwrite="true" />
+        <copy tofile="../temp/android/bugsnag-android-core-4.19.1.jar" file="../android/libs/bugsnag-android-core-4.19.1.jar" overwrite="true" />
         
         <delete dir="../android/temp"/>
     </target>

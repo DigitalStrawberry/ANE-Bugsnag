@@ -55,12 +55,12 @@
         <delete dir="../android/temp"/>
         <mkdir dir="../android/temp/classes"/>
 
-        <javac srcdir="../android/src" destdir="../android/temp/classes" includeantruntime="false" target="1.7" source="1.7">
+        <javac srcdir="../android/src" destdir="../android/temp/classes" includeantruntime="false" target="1.8" source="1.8">
             <classpath>
                 <pathelement location="${android.sdk}/platforms/android-${android.version}/android.jar"/>
-                <pathelement location="${flex.sdk}/lib/android/FlashRuntimeExtensions.jar"/>
-                <pathelement location="../android/libs/bugsnag-android-4.19.1.jar" />
-                <pathelement location="../android/libs/bugsnag-android-core-4.19.1.jar" />
+                <pathelement location="../android/libs/FlashRuntimeExtensions.jar"/>
+                <pathelement location="../android/libs/bugsnag-android-5.5.0.jar" />
+                <pathelement location="../android/libs/bugsnag-android-core-5.5.0.jar" />
                 <pathelement location="../android/libs/android-support-annotations.jar" />
             </classpath>
         </javac>
@@ -68,8 +68,8 @@
         <mkdir dir="../temp/android/"/>
         <jar basedir="../android/temp/classes" destfile="../temp/android/lib${name}.jar"/>
         
-        <copy tofile="../temp/android/bugsnag-android-4.19.1.jar" file="../android/libs/bugsnag-android-4.19.1.jar" overwrite="true" />
-        <copy tofile="../temp/android/bugsnag-android-core-4.19.1.jar" file="../android/libs/bugsnag-android-core-4.19.1.jar" overwrite="true" />
+        <copy tofile="../temp/android/bugsnag-android-5.5.0.jar" file="../android/libs/bugsnag-android-5.5.0.jar" overwrite="true" />
+        <copy tofile="../temp/android/bugsnag-android-core-5.5.0.jar" file="../android/libs/bugsnag-android-core-5.5.0.jar" overwrite="true" />
         
         <delete dir="../android/temp"/>
     </target>

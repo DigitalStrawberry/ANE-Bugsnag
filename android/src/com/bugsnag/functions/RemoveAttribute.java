@@ -24,7 +24,7 @@ public class RemoveAttribute implements FREFunction
             return null;
         }
 
-        Bugsnag.addToTab(tabName, name, null);
+        Bugsnag.clearMetadata(tabName, name);
 
         return null;
     }

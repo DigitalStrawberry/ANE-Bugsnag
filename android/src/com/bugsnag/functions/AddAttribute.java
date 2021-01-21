@@ -26,7 +26,7 @@ public class AddAttribute implements FREFunction
             return null;
         }
 
-        Bugsnag.addToTab(tabName, name, value);
+        Bugsnag.addMetadata(tabName, name, value);
 
         return null;
     }

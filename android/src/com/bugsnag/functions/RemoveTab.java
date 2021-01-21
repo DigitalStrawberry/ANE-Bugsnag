@@ -22,7 +22,7 @@ public class RemoveTab implements FREFunction
             return null;
         }
 
-        Bugsnag.clearTab(tabName);
+        Bugsnag.clearMetadata(tabName);
 
         return null;
     }

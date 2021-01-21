@@ -21,9 +21,6 @@ public class ANEBugsnagContext extends FREContext
 		Map<String, FREFunction> functionMap = new HashMap<String, FREFunction>();
 		functionMap.put("initialize", new Initialize());
 		functionMap.put("setContext", new SetContext());
-		functionMap.put("setUser", new SetUser());
-		functionMap.put("setReleaseStage", new SetReleaseStage());
-		functionMap.put("autoNotify", new AutoNotify());
 		functionMap.put("crash", new Crash());
 		functionMap.put("addAttribute", new AddAttribute());
 		functionMap.put("removeAttribute", new RemoveAttribute());

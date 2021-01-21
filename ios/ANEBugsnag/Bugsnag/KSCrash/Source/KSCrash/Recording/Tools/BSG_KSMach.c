@@ -35,6 +35,9 @@
 #include <mach-o/arch.h>
 #include <mach/mach_time.h>
 #include <sys/sysctl.h>
+#if defined(__IPHONE_13_0) && __IPHONE_OS_VERSION_MAX_ALLOWED >= __IPHONE_13_0
+#import <os/proc.h>
+#endif
 
 // Avoiding static functions due to linker issues.
 
@@ -56,6 +59,25 @@ static pthread_t bsg_g_topThread;
 // ============================================================================
 
 uint64_t bsg_ksmachfreeMemory(void) {
+    size_t mem = 0;
+
+#if BSG_PLATFORM_IOS &&  defined(__IPHONE_13_0) && __IPHONE_OS_VERSION_MAX_ALLOWED >= __IPHONE_13_0
+    if (__builtin_available(iOS 13.0, *)) {
+        mem = os_proc_available_memory();
+    }
+#endif
+
+#if BSG_PLATFORM_TVOS &&  defined(__TVOS_13_0) && __TV_OS_VERSION_MAX_ALLOWED >= __TVOS_13_0
+    if (__builtin_available(tvOS 13.0, *)) {
+        mem = os_proc_available_memory();
+    }
+#endif
+
+    // Note: Some broken versions of iOS always return 0.
+    if(mem != 0) {
+        return mem;
+    }
+
     vm_statistics_data_t vmStats;
     vm_size_t pageSize;
     if (bsg_ksmachi_VMStats(&vmStats, &pageSize)) {
@@ -100,7 +122,7 @@ const char *bsg_ksmachexceptionName(const exception_type_t exceptionType) {
     return NULL;
 }
 
-const char *bsg_ksmachkernelReturnCodeName(const kern_return_t returnCode) {
+const char *bsg_ksmachkernelReturnCodeName(const unsigned long long returnCode) {
     switch (returnCode) {
         RETURN_NAME_FOR_ENUM(KERN_SUCCESS);
         RETURN_NAME_FOR_ENUM(KERN_INVALID_ADDRESS);
@@ -153,6 +175,11 @@ const char *bsg_ksmachkernelReturnCodeName(const kern_return_t returnCode) {
         RETURN_NAME_FOR_ENUM(KERN_NOT_WAITING);
         RETURN_NAME_FOR_ENUM(KERN_OPERATION_TIMED_OUT);
         RETURN_NAME_FOR_ENUM(KERN_CODESIGN_ERROR);
+        // Note: these are only valid for EXC_BAD_ACCESS
+        RETURN_NAME_FOR_ENUM(EXC_ARM_DA_ALIGN);
+        RETURN_NAME_FOR_ENUM(EXC_ARM_DA_DEBUG);
+        RETURN_NAME_FOR_ENUM(EXC_ARM_SP_ALIGN);
+        RETURN_NAME_FOR_ENUM(EXC_ARM_SWP);
     }
     return NULL;
 }
@@ -343,9 +370,12 @@ bool bsg_ksmachsuspendAllThreadsExcept(thread_t *exceptThreads,
         if (thread != thisThread &&
             !isThreadInList(thread, exceptThreads, exceptThreadsCount)) {
             if ((kr = thread_suspend(thread)) != KERN_SUCCESS) {
-                BSG_KSLOG_ERROR("thread_suspend (%08x): %s", thread,
-                                mach_error_string(kr));
+                // The thread may have completed running already
                 // Don't treat this as a fatal error.
+                BSG_KSLOG_DEBUG("thread_suspend (%08x): %s", thread,
+                                mach_error_string(kr));
+                // Suppress dead store warning when log level > debug
+                (void)kr;
             }
         }
     }
@@ -381,9 +411,12 @@ bool bsg_ksmachresumeAllThreadsExcept(thread_t *exceptThreads,
         if (thread != thisThread &&
             !isThreadInList(thread, exceptThreads, exceptThreadsCount)) {
             if ((kr = thread_resume(thread)) != KERN_SUCCESS) {
-                BSG_KSLOG_ERROR("thread_resume (%08x): %s", thread,
-                                mach_error_string(kr));
+                // The thread may have completed running already
                 // Don't treat this as a fatal error.
+                BSG_KSLOG_DEBUG("thread_resume (%08x): %s", thread,
+                                 mach_error_string(kr));
+                // Suppress dead store warning when log level > debug
+                (void)kr;
             }
         }
     }

@@ -11,7 +11,10 @@
 
 #import "BugsnagCrashSentry.h"
 #import "BugsnagLogger.h"
-#import "BugsnagSink.h"
+#import "BugsnagErrorReportSink.h"
+#import "BugsnagConfiguration.h"
+#import "Bugsnag.h"
+#import "BugsnagErrorTypes.h"
 
 NSUInteger const BSG_MAX_STORED_REPORTS = 12;
 
@@ -19,47 +22,70 @@ NSUInteger const BSG_MAX_STORED_REPORTS = 12;
 
 - (void)install:(BugsnagConfiguration *)config
       apiClient:(BugsnagErrorReportApiClient *)apiClient
-        onCrash:(BSGReportCallback)onCrash {
+        onCrash:(BSGReportCallback)onCrash
+{
+    BugsnagErrorReportSink *sink = [[BugsnagErrorReportSink alloc] initWithApiClient:apiClient];
+    BSG_KSCrash *ksCrash = [BSG_KSCrash sharedInstance];
+    ksCrash.sink = sink;
+    ksCrash.introspectMemory = YES;
+    ksCrash.onCrash = onCrash;
+    ksCrash.maxStoredReports = BSG_MAX_STORED_REPORTS;
 
-    BugsnagSink *sink = [[BugsnagSink alloc] initWithApiClient:apiClient];
-    [BSG_KSCrash sharedInstance].sink = sink;
-    [BSG_KSCrash sharedInstance].introspectMemory = YES;
-    [BSG_KSCrash sharedInstance].deleteBehaviorAfterSendAll =
-        BSG_KSCDeleteOnSucess;
-    [BSG_KSCrash sharedInstance].onCrash = onCrash;
-    [BSG_KSCrash sharedInstance].maxStoredReports = BSG_MAX_STORED_REPORTS;
+    // overridden elsewhere for handled errors, so we can assume that this only
+    // applies to unhandled errors
+    ksCrash.threadTracingEnabled = config.sendThreads != BSGThreadSendPolicyNever;
 
-    if (!config.autoNotify) {
-        bsg_kscrash_setHandlingCrashTypes(BSG_KSCrashTypeUserReported);
+    // User reported events are *always* handled
+    BSG_KSCrashType crashTypes = BSG_KSCrashTypeUserReported;
+    
+    // If Bugsnag is autodetecting errors then the types of event detected is configurable
+    // (otherwise it's just the user reported events)
+    if (config.autoDetectErrors) {
+        // Translate the relevant BSGErrorTypes bitfield into the equivalent BSG_KSCrashType one
+        crashTypes = crashTypes | [self mapKSToBSGCrashTypes:config.enabledErrorTypes];
     }
-    if (![[BSG_KSCrash sharedInstance] install]) {
-        bsg_log_err(@"Failed to install crash handler. No exceptions will be "
-                    @"reported!");
+    
+    bsg_kscrash_setHandlingCrashTypes(crashTypes);
+    
+    if ((![ksCrash install])) {
+        bsg_log_err(@"Failed to install crash handler. No exceptions will be reported!");
     }
 
     [sink.apiClient flushPendingData];
 }
 
+/**
+ * Map the BSGErrorType bitfield of reportable events to the equivalent KSCrash one.
+ * OOMs are dealt with exclusively in the Bugsnag layer so omitted from consideration here.
+ * User reported events should always be included and so also not dealt with here.
+ *
+ * @param errorTypes The enabled error types
+ * @returns A BSG_KSCrashType equivalent (with the above caveats) to the input
+ */
+- (BSG_KSCrashType)mapKSToBSGCrashTypes:(BugsnagErrorTypes *)errorTypes
+{
+    return (BSG_KSCrashType) ((errorTypes.unhandledExceptions ? BSG_KSCrashTypeNSException : 0)
+                    | (errorTypes.cppExceptions ? BSG_KSCrashTypeCPPException : 0)
+                    | (errorTypes.signals ? BSG_KSCrashTypeSignal : 0)
+                    | (errorTypes.machExceptions ? BSG_KSCrashTypeMachException : 0));
+}
+
 - (void)reportUserException:(NSString *)reportName
                      reason:(NSString *)reportMessage
-          originalException:(NSException *)ex
                handledState:(NSDictionary *)handledState
                    appState:(NSDictionary *)appState
           callbackOverrides:(NSDictionary *)overrides
+             eventOverrides:(NSDictionary *)eventOverrides
                    metadata:(NSDictionary *)metadata
-                     config:(NSDictionary *)config
-               discardDepth:(int)depth {
-
+                     config:(NSDictionary *)config {
     [[BSG_KSCrash sharedInstance] reportUserException:reportName
                                                reason:reportMessage
-                                    originalException:ex
                                          handledState:handledState
                                              appState:appState
                                     callbackOverrides:overrides
+                                       eventOverrides:eventOverrides
                                              metadata:metadata
-                                               config:config
-                                         discardDepth:depth
-                                     terminateProgram:NO];
+                                               config:config];
 }
 
 @end

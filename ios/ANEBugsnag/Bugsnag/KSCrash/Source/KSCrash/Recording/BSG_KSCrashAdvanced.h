@@ -25,8 +25,9 @@
 //
 
 #import "BSG_KSCrash.h"
-#import "BSG_KSCrashReportFilter.h"
 #import "BSG_KSCrashReportStore.h"
+
+@class BugsnagErrorReportSink;
 
 /**
  * Advanced interface to the BSG_KSCrash system.
@@ -37,7 +38,7 @@
 
 /** Total active time elapsed since the last crash. */
 @property(nonatomic, readonly, assign)
-    NSTimeInterval activeDurationSinceLastCrash;
+    NSTimeInterval foregroundDurationSinceLastCrash;
 
 /** Total time backgrounded elapsed since the last crash. */
 @property(nonatomic, readonly, assign)
@@ -50,7 +51,7 @@
 @property(nonatomic, readonly, assign) int sessionsSinceLastCrash;
 
 /** Total active time elapsed since launch. */
-@property(nonatomic, readonly, assign) NSTimeInterval activeDurationSinceLaunch;
+@property(nonatomic, readonly, assign) NSTimeInterval foregroundDurationSinceLaunch;
 
 /** Total time backgrounded elapsed since launch. */
 @property(nonatomic, readonly, assign)
@@ -81,7 +82,7 @@
 #pragma mark - Configuration -
 
 /** Init BSG_KSCrash instance with custom report files directory path. */
-- (id)initWithReportFilesDirectory:(NSString *)reportFilesDirectory;
+- (instancetype)initWithReportFilesDirectory:(NSString *)reportFilesDirectory;
 
 /** Store containing all crash reports. */
 @property(nonatomic, readwrite, retain)
@@ -94,7 +95,7 @@
  * Note: If you use an installation, it will automatically set this property.
  *       Do not modify it in such a case.
  */
-@property(nonatomic, readwrite, retain) id<BSG_KSCrashReportFilter> sink;
+@property(nonatomic, readwrite, retain) BugsnagErrorReportSink *sink;
 
 /** C Function to call during a crash report to give the callee an opportunity
  * to add to the report. NULL = ignore.
@@ -147,9 +148,9 @@
 /** Send the specified reports to the current sink.
  *
  * @param reports The reports to send.
- * @param onCompletion Called when sending is complete (nil = ignore).
+ * @param block Called when sending is complete (nil = ignore).
  */
 - (void)sendReports:(NSDictionary <NSString *, NSDictionary *> *)reports
-       onCompletion:(BSG_KSCrashReportFilterCompletion)onCompletion;
+          withBlock:(BSGOnErrorSentBlock)block;
 
 @end

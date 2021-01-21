@@ -3,6 +3,9 @@
 
 #import "FlashRuntimeExtensions.h"
 
+NSString* FREGetObjectStringProperty(FREObject object, NSString* propertyName);
+BOOL FREGetObjectBoolProperty(FREObject object, NSString* propertyName);
+
 FREResult FREGetObjectAsString( FREObject object, NSString** value );
 
 FREResult FRENewObjectFromString( NSString* string, FREObject* asString );

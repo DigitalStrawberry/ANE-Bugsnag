@@ -25,15 +25,25 @@
 //
 
 #import "Bugsnag.h"
-#import "BSG_KSCrash.h"
-#import "BugsnagLogger.h"
-#import "BugsnagNotifier.h"
-#import "BugsnagKeys.h"
 
-static BugsnagNotifier *bsg_g_bugsnag_notifier = NULL;
+#import "BSG_KSCrash.h"
+#import "BugsnagBreadcrumbs.h"
+#import "BugsnagLogger.h"
+#import "BugsnagClient+Private.h"
+#import "BugsnagKeys.h"
+#import "BugsnagPlugin.h"
+#import "BugsnagHandledState.h"
+#import "BugsnagSystemState.h"
+
+static BugsnagClient *bsg_g_bugsnag_client = NULL;
+
+@interface BugsnagConfiguration ()
+@property(readwrite, retain, nullable) BugsnagMetadata *metadata;
+@property(readwrite, retain, nullable) BugsnagMetadata *config;
+@end
 
 @interface Bugsnag ()
-+ (BugsnagNotifier *)notifier;
++ (BugsnagClient *)client;
 + (BOOL)bugsnagStarted;
 @end
 
@@ -41,29 +51,45 @@ static BugsnagNotifier *bsg_g_bugsnag_notifier = NULL;
 - (NSDictionary *)BSG_mergedInto:(NSDictionary *)dest;
 @end
 
+@interface BugsnagMetadata ()
+- (NSDictionary *_Nonnull)toDictionary;
+@end
+
 @implementation Bugsnag
 
-+ (void)startBugsnagWithApiKey:(NSString *)apiKey {
-    BugsnagConfiguration *configuration = [BugsnagConfiguration new];
-    configuration.apiKey = apiKey;
-    [self startBugsnagWithConfiguration:configuration];
++ (BugsnagClient *_Nonnull)start {
+    BugsnagConfiguration *configuration = [BugsnagConfiguration loadConfig];
+    return [self startWithConfiguration:configuration];
 }
 
-+ (void)startBugsnagWithConfiguration:(BugsnagConfiguration *)configuration {
++ (BugsnagClient *_Nonnull)startWithApiKey:(NSString *_Nonnull)apiKey {
+    BugsnagConfiguration *configuration = [[BugsnagConfiguration alloc] initWithApiKey:apiKey];
+    return [self startWithConfiguration:configuration];
+}
+
++ (BugsnagClient *_Nonnull)startWithConfiguration:(BugsnagConfiguration *_Nonnull)configuration {
     @synchronized(self) {
-        if ([configuration hasValidApiKey]) {
-            bsg_g_bugsnag_notifier =
-                    [[BugsnagNotifier alloc] initWithConfiguration:configuration];
-            [bsg_g_bugsnag_notifier start];
+        if (bsg_g_bugsnag_client == nil) {
+            bsg_g_bugsnag_client = [[BugsnagClient alloc] initWithConfiguration:configuration];
+            [bsg_g_bugsnag_client start];
         } else {
-            bsg_log_err(@"Bugsnag not initialized - a valid API key must be supplied.");
+            bsg_log_warn(@"Multiple Bugsnag.start calls detected. Ignoring.");
         }
+        return bsg_g_bugsnag_client;
     }
+}
+
+/**
+ * Purge the global client so that it will be regenerated on the next call to start.
+ * This is only used by the unit tests.
+ */
++ (void)purge {
+    bsg_g_bugsnag_client = nil;
 }
 
 + (BugsnagConfiguration *)configuration {
     if ([self bugsnagStarted]) {
-        return self.notifier.configuration;
+        return self.client.configuration;
     }
     return nil;
 }
@@ -72,119 +98,55 @@ static BugsnagNotifier *bsg_g_bugsnag_notifier = NULL;
     return [self configuration];
 }
 
-+ (BugsnagNotifier *)notifier {
-    return bsg_g_bugsnag_notifier;
++ (BugsnagClient *)client {
+    return bsg_g_bugsnag_client;
 }
 
 + (BOOL)appDidCrashLastLaunch {
     if ([self bugsnagStarted]) {
-        return [self.notifier appCrashedLastLaunch];
+        return [self.client appDidCrashLastLaunch];
     }
     return NO;
 }
 
 + (void)notify:(NSException *)exception {
     if ([self bugsnagStarted]) {
-        [self.notifier notifyException:exception
-                                 block:^(BugsnagCrashReport *_Nonnull report) {
-                                     report.depth += 2;
-                                 }];
+        [self.client notify:exception];
     }
 }
 
-+ (void)notify:(NSException *)exception block:(BugsnagNotifyBlock)block {
++ (void)notify:(NSException *)exception block:(BugsnagOnErrorBlock)block {
     if ([self bugsnagStarted]) {
-        [[self notifier] notifyException:exception
-                                   block:^(BugsnagCrashReport *_Nonnull report) {
-                                       report.depth += 2;
-
-                                       if (block) {
-                                           block(report);
-                                       }
-                                   }];
+        [self.client notify:exception block:block];
     }
 }
 
 + (void)notifyError:(NSError *)error {
     if ([self bugsnagStarted]) {
-        [self.notifier notifyError:error
-                             block:^(BugsnagCrashReport *_Nonnull report) {
-                                 report.depth += 2;
-                             }];
+        [self.client notifyError:error];
     }
 }
 
-+ (void)notifyError:(NSError *)error block:(BugsnagNotifyBlock)block {
++ (void)notifyError:(NSError *)error block:(BugsnagOnErrorBlock)block {
     if ([self bugsnagStarted]) {
-        [[self notifier] notifyError:error
-                               block:^(BugsnagCrashReport *_Nonnull report) {
-                                   report.depth += 2;
-
-                                   if (block) {
-                                       block(report);
-                                   }
-                               }];
+        [self.client notifyError:error block:block];
     }
 }
 
-+ (void)notify:(NSException *)exception withData:(NSDictionary *)metaData {
+/**
+ * Intended for use by other clients (React Native/Unity). Calling this method
+ * directly from iOS is not supported.
+ */
++ (void)notifyInternal:(BugsnagEvent *_Nonnull)event
+                 block:(BugsnagOnErrorBlock)block {
     if ([self bugsnagStarted]) {
-        [[self notifier]
-                notifyException:exception
-                          block:^(BugsnagCrashReport *_Nonnull report) {
-                              report.depth += 2;
-                              report.metaData = [metaData
-                                      BSG_mergedInto:[self.notifier.configuration
-                                              .metaData toDictionary]];
-                          }];
-    }
-}
-
-+ (void)notify:(NSException *)exception
-      withData:(NSDictionary *)metaData
-    atSeverity:(NSString *)severity {
-    if ([self bugsnagStarted]) {
-        [[self notifier]
-                notifyException:exception
-                     atSeverity:BSGParseSeverity(severity)
-                          block:^(BugsnagCrashReport *_Nonnull report) {
-                              report.depth += 2;
-                              report.metaData = [metaData
-                                      BSG_mergedInto:[self.notifier.configuration
-                                              .metaData toDictionary]];
-                              report.severity = BSGParseSeverity(severity);
-                          }];
-    }
-}
-
-+ (void)internalClientNotify:(NSException *_Nonnull)exception
-                    withData:(NSDictionary *_Nullable)metaData
-                       block:(BugsnagNotifyBlock _Nullable)block {
-    if ([self bugsnagStarted]) {
-        [self.notifier internalClientNotify:exception
-                                   withData:metaData
-                                      block:block];
-    }
-}
-
-+ (void)addAttribute:(NSString *)attributeName
-           withValue:(id)value
-       toTabWithName:(NSString *)tabName {
-    if ([self bugsnagStarted]) {
-        [self.notifier.configuration.metaData addAttribute:attributeName
-                                                 withValue:value
-                                             toTabWithName:tabName];
-    }
-}
-
-+ (void)clearTabWithName:(NSString *)tabName {
-    if ([self bugsnagStarted]) {
-        [self.notifier.configuration.metaData clearTab:tabName];
+        [self.client notifyInternal:event
+                              block:block];
     }
 }
 
 + (BOOL)bugsnagStarted {
-    if (!self.notifier.started) {
+    if (!self.client.started) {
         bsg_log_err(@"Ensure you have started Bugsnag with startWithApiKey: "
                     @"before calling any other Bugsnag functions.");
 
@@ -195,93 +157,198 @@ static BugsnagNotifier *bsg_g_bugsnag_notifier = NULL;
 
 + (void)leaveBreadcrumbWithMessage:(NSString *)message {
     if ([self bugsnagStarted]) {
-        [self leaveBreadcrumbWithBlock:^(BugsnagBreadcrumb *_Nonnull crumbs) {
-            crumbs.metadata = @{BSGKeyMessage: message};
-        }];
+        [self.client leaveBreadcrumbWithMessage:message];
     }
 }
 
 + (void)leaveBreadcrumbWithBlock:
     (void (^_Nonnull)(BugsnagBreadcrumb *_Nonnull))block {
     if ([self bugsnagStarted]) {
-        [self.notifier addBreadcrumbWithBlock:block];
+        [self.client addBreadcrumbWithBlock:block];
     }
 }
 
 + (void)leaveBreadcrumbForNotificationName:
     (NSString *_Nonnull)notificationName {
     if ([self bugsnagStarted]) {
-        [self.notifier crumbleNotification:notificationName];
+        [self.client leaveBreadcrumbForNotificationName:notificationName];
     }
 }
 
-+ (void)setBreadcrumbCapacity:(NSUInteger)capacity {
++ (void)leaveBreadcrumbWithMessage:(NSString *_Nonnull)message
+                          metadata:(NSDictionary *_Nullable)metadata
+                           andType:(BSGBreadcrumbType)type
+{
     if ([self bugsnagStarted]) {
-        self.notifier.configuration.breadcrumbs.capacity = capacity;
+        [self.client leaveBreadcrumbWithMessage:message
+                                       metadata:metadata
+                                        andType:type];
     }
 }
 
-+ (void)clearBreadcrumbs {
++ (NSArray<BugsnagBreadcrumb *> *_Nonnull)breadcrumbs {
     if ([self bugsnagStarted]) {
-        [self.notifier clearBreadcrumbs];
+        return self.client.breadcrumbs.breadcrumbs;
+    } else {
+        return @[];
     }
 }
 
 + (void)startSession {
     if ([self bugsnagStarted]) {
-        [self.notifier startSession];
+        [self.client startSession];
     }
 }
 
-+ (void)stopSession {
++ (void)pauseSession {
     if ([self bugsnagStarted]) {
-        [self.notifier stopSession];
+        [self.client pauseSession];
     }
 }
 
 + (BOOL)resumeSession {
     if ([self bugsnagStarted]) {
-        return [self.notifier resumeSession];
+        return [self.client resumeSession];
     } else {
         return false;
     }
 }
 
-+ (NSDateFormatter *)payloadDateFormatter {
-    static NSDateFormatter *formatter;
-    static dispatch_once_t onceToken;
-    dispatch_once(&onceToken, ^{
-      formatter = [NSDateFormatter new];
-      formatter.dateFormat = @"yyyy'-'MM'-'dd'T'HH':'mm':'ssZZZ";
-    });
-    return formatter;
-}
-
-+ (void)setSuspendThreadsForUserReported:(BOOL)suspendThreadsForUserReported {
++ (void)addRuntimeVersionInfo:(NSString *)info
+                      withKey:(NSString *)key {
     if ([self bugsnagStarted]) {
-        [[BSG_KSCrash sharedInstance]
-                setSuspendThreadsForUserReported:suspendThreadsForUserReported];
+        [self.client addRuntimeVersionInfo:info withKey:key];
     }
 }
 
-+ (void)setReportWhenDebuggerIsAttached:(BOOL)reportWhenDebuggerIsAttached {
+// =============================================================================
+// MARK: - <BugsnagClassLevelMetadataStore>
+// =============================================================================
+
+/**
+ * Add custom data to send to Bugsnag with every exception. If value is nil,
+ * delete the current value for attributeName
+ *
+ * @param metadata The metadata to add
+ * @param key The key for the metadata
+ * @param section The top-level section to add the keyed metadata to
+ */
++ (void)addMetadata:(id _Nullable)metadata
+            withKey:(NSString *_Nonnull)key
+          toSection:(NSString *_Nonnull)section
+{
     if ([self bugsnagStarted]) {
-        [[BSG_KSCrash sharedInstance]
-                setReportWhenDebuggerIsAttached:reportWhenDebuggerIsAttached];
+        [self.client addMetadata:metadata
+                                  withKey:key
+                                toSection:section];
     }
 }
 
-+ (void)setThreadTracingEnabled:(BOOL)threadTracingEnabled {
++ (void)addMetadata:(id _Nonnull)metadata
+          toSection:(NSString *_Nonnull)section
+{
     if ([self bugsnagStarted]) {
-        [[BSG_KSCrash sharedInstance] setThreadTracingEnabled:threadTracingEnabled];
+        [self.client addMetadata:metadata
+                       toSection:section];
     }
 }
 
-+ (void)setWriteBinaryImagesForUserReported:
-    (BOOL)writeBinaryImagesForUserReported {
++ (NSMutableDictionary *)getMetadataFromSection:(NSString *)section
+{
     if ([self bugsnagStarted]) {
-        [[BSG_KSCrash sharedInstance]
-                setWriteBinaryImagesForUserReported:writeBinaryImagesForUserReported];
+        return [[self.client getMetadataFromSection:section] mutableCopy];
+    }
+    return nil;
+}
+
++ (id _Nullable )getMetadataFromSection:(NSString *_Nonnull)section
+                                withKey:(NSString *_Nonnull)key
+{
+    if ([self bugsnagStarted]) {
+        return [[self.client getMetadataFromSection:section withKey:key] mutableCopy];
+    }
+    return nil;
+}
+
++ (void)clearMetadataFromSection:(NSString *)section
+{
+    if ([self bugsnagStarted]) {
+        [self.client clearMetadataFromSection:section];
+    }
+}
+
++ (void)clearMetadataFromSection:(NSString *_Nonnull)sectionName
+                         withKey:(NSString *_Nonnull)key
+{
+    if ([self bugsnagStarted]) {
+        [self.client clearMetadataFromSection:sectionName
+                                      withKey:key];
+    }
+}
+
+// MARK: -
+
++ (void)setContext:(NSString *_Nullable)context {
+    if ([self bugsnagStarted]) {
+        [self.client setContext:context];
+    }
+}
+
++ (NSString *_Nullable)context {
+    if ([self bugsnagStarted]) {
+        return self.client.context;
+    }
+    return nil;
+}
+
++ (BugsnagUser *)user {
+    return self.client.user;
+}
+
++ (void)setUser:(NSString *_Nullable)userId
+      withEmail:(NSString *_Nullable)email
+        andName:(NSString *_Nullable)name {
+    if ([self bugsnagStarted]) {
+        [self.client setUser:userId withEmail:email andName:name];
+    }
+}
+
++ (void)addOnSessionBlock:(BugsnagOnSessionBlock _Nonnull)block
+{
+    if ([self bugsnagStarted]) {
+        [self.client addOnSessionBlock:block];
+    }
+}
+
++ (void)removeOnSessionBlock:(BugsnagOnSessionBlock _Nonnull )block
+{
+    if ([self bugsnagStarted]) {
+        [self.client removeOnSessionBlock:block];
+    }
+}
+
+/**
+ * Intended for internal use only - sets the code bundle id for React Native
+ */
++ (void)updateCodeBundleId:(NSString *)codeBundleId {
+    if ([self bugsnagStarted]) {
+        self.client.codeBundleId = codeBundleId;
+    }
+}
+
+// =============================================================================
+// MARK: - OnBreadcrumb
+// =============================================================================
+
++ (void)addOnBreadcrumbBlock:(BugsnagOnBreadcrumbBlock _Nonnull)block {
+    if ([self bugsnagStarted]) {
+        [self.client addOnBreadcrumbBlock:block];
+    }
+}
+
++ (void)removeOnBreadcrumbBlock:(BugsnagOnBreadcrumbBlock _Nonnull)block {
+    if ([self bugsnagStarted]) {
+        [self.client removeOnBreadcrumbBlock:block];
     }
 }
 

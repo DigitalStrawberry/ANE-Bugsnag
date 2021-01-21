@@ -29,6 +29,7 @@
 #include "BSG_KSCrashReport.h"
 #include "BSG_KSCrashSentry_User.h"
 #include "BSG_KSMach.h"
+#include "BSG_KSMachHeaders.h"
 #include "BSG_KSObjC.h"
 #include "BSG_KSString.h"
 #include "BSG_KSSystemInfoC.h"
@@ -55,51 +56,8 @@ static char *bsg_g_stateFilePath;
 // ============================================================================
 #pragma mark - Utility -
 // ============================================================================
-static const int bsg_filepath_len = 512;
-static const int bsg_error_class_filepath_len = 21;
-static const char bsg_filepath_context_sep = '-';
-
 BSG_KSCrash_Context *crashContext(void) {
     return &bsg_g_crashReportContext;
-}
-
-int bsg_create_filepath(char *base, char filepath[bsg_filepath_len], char severity, char error_class[bsg_error_class_filepath_len]) {
-    int length;
-    for (length = 0; length < bsg_filepath_len; length++) {
-        if (base[length] == '\0') {
-            break;
-        }
-        filepath[length] = base[length];
-    }
-    if (length > 5) // Remove initial .json from path
-        length -= 5;
-
-    // append contextual info
-    BSG_KSCrash_Context *context = crashContext();
-    filepath[length++] = bsg_filepath_context_sep;
-    filepath[length++] = severity;
-    filepath[length++] = bsg_filepath_context_sep;
-    // 'h' for handled vs 'u'nhandled
-    filepath[length++] = context->crash.crashType == BSG_KSCrashTypeUserReported ? 'h' : 'u';
-    filepath[length++] = bsg_filepath_context_sep;
-    for (int i = 0; error_class != NULL && i < bsg_error_class_filepath_len; i++) {
-        char c = error_class[i];
-        if (c == '\0')
-            break;
-        else if (c == 47 || c > 126 || c <= 0)
-            // disallow '/' and characters outside of the ascii range
-            continue;
-        filepath[length++] = c;
-    }
-    // add suffix
-    filepath[length++] = '.';
-    filepath[length++] = 'j';
-    filepath[length++] = 's';
-    filepath[length++] = 'o';
-    filepath[length++] = 'n';
-    filepath[length++] = '\0';
-
-    return length;
 }
 
 // ============================================================================
@@ -112,7 +70,7 @@ int bsg_create_filepath(char *base, char filepath[bsg_filepath_len], char severi
  *
  * This function gets passed as a callback to a crash handler.
  */
-void bsg_kscrash_i_onCrash(char severity, char *errorClass, BSG_KSCrash_Context *context) {
+void bsg_kscrash_i_onCrash(BSG_KSCrash_Context *context) {
     BSG_KSLOG_DEBUG("Updating application state to note crash.");
 
     bsg_kscrashstate_notifyAppCrash(context->crash.crashType);
@@ -125,9 +83,7 @@ void bsg_kscrash_i_onCrash(char severity, char *errorClass, BSG_KSCrash_Context 
         bsg_kscrashreport_writeMinimalReport(context,
                                              context->config.recrashReportFilePath);
     } else {
-        char filepath[bsg_filepath_len];
-        bsg_create_filepath((char *)context->config.crashReportFilePath, filepath, severity, errorClass);
-        bsg_kscrashreport_writeStandardReport(context, filepath);
+        bsg_kscrashreport_writeStandardReport(context, context->config.crashReportFilePath);
     }
 }
 
@@ -142,7 +98,12 @@ BSG_KSCrashType bsg_kscrash_install(const char *const crashReportFilePath,
     BSG_KSLOG_DEBUG("Installing crash reporter.");
 
     BSG_KSCrash_Context *context = crashContext();
-
+    
+    // Initialize local store of dynamically loaded libraries so that binary
+    // image information can be extracted for reports
+    bsg_mach_headers_initialize();
+    bsg_mach_headers_register_for_changes();
+    
     if (bsg_g_installed) {
         BSG_KSLOG_DEBUG("Crash reporter already installed.");
         return context->config.handlingCrashTypes;
@@ -190,6 +151,7 @@ void bsg_kscrash_reinstall(const char *const crashReportFilePath,
         BSG_KSLOG_ERROR("Failed to initialize persistent crash state");
     }
     context->state.appLaunchTime = mach_absolute_time();
+    context->state.appStateTransitionTime = mach_absolute_time();
 }
 
 BSG_KSCrashType bsg_kscrash_setHandlingCrashTypes(BSG_KSCrashType crashTypes) {
@@ -199,7 +161,7 @@ BSG_KSCrashType bsg_kscrash_setHandlingCrashTypes(BSG_KSCrashType crashTypes) {
     if (bsg_g_installed) {
         bsg_kscrashsentry_uninstall(~crashTypes);
         crashTypes = bsg_kscrashsentry_installWithContext(
-            &context->crash, crashTypes, (void(*)(char, char *, void *))bsg_kscrash_i_onCrash);
+            &context->crash, crashTypes, (void(*)(void *))bsg_kscrash_i_onCrash);
     }
 
     return crashTypes;
@@ -226,29 +188,18 @@ void bsg_kscrash_setCrashNotifyCallback(
 }
 
 void bsg_kscrash_reportUserException(const char *name, const char *reason,
-                                     uintptr_t *stackAddresses,
-                                     unsigned long stackLength,
-                                     const char *severity,
-                                     const char *handledState,
-                                     const char *overrides,
-                                     const char *metadata,
-                                     const char *appState,
-                                     const char *config,
-                                     int discardDepth,
-                                     bool terminateProgram) {
+        const char *severity,
+        const char *handledState,
+        const char *overrides,
+        const char *eventOverrides,
+        const char *metadata,
+        const char *appState,
+        const char *config) {
     bsg_kscrashsentry_reportUserException(name, reason,
-                                          stackAddresses,
-                                          stackLength,
-                                          severity,
-                                          handledState, overrides,
-                                          metadata, appState, config, discardDepth,
-                                          terminateProgram);
-}
-
-void bsg_kscrash_setSuspendThreadsForUserReported(
-    bool suspendThreadsForUserReported) {
-    crashContext()->crash.suspendThreadsForUserReported =
-        suspendThreadsForUserReported;
+            severity,
+            handledState, overrides,
+            eventOverrides,
+            metadata, appState, config);
 }
 
 void bsg_kscrash_setWriteBinaryImagesForUserReported(
@@ -265,4 +216,41 @@ void bsg_kscrash_setReportWhenDebuggerIsAttached(
 
 void bsg_kscrash_setThreadTracingEnabled(bool threadTracingEnabled) {
     crashContext()->crash.threadTracingEnabled = threadTracingEnabled;
+}
+
+void bsg_kscrash_captureThreadTrace(int discardDepth, int frameCount,
+                                    uintptr_t *callstack,
+                                    const bool recordAllThreads,
+                                    const char *path) {
+    BSG_KSCrash_Context *globalContext = crashContext();
+    BSG_KSCrash_Context localContext = {};
+    BSG_KSCrash_Context *context = &localContext;
+    memcpy(context, globalContext, sizeof(BSG_KSCrash_Context));
+
+    // populate context with pre-recorded stacktrace/thread info
+    // for KSCrash to serialize
+    context->crash.stackTrace = callstack;
+    context->crash.stackTraceLength = frameCount;
+    context->crash.userException.discardDepth = discardDepth;
+    context->crash.offendingThread = bsg_ksmachthread_self();
+    context->crash.crashType = BSG_KSCrashTypeUserReported;
+    context->crash.threadTracingEnabled = recordAllThreads;
+
+    // No need to gather notable addresses for handled errors
+    context->config.introspectionRules.enabled = false;
+    
+    // Only suspend threads if tracing is set to always
+    // (to ensure trace is captured at the same point in time)
+    if (context->crash.threadTracingEnabled) {
+        bsg_kscrashsentry_suspend_threads_user();
+    }
+    
+    // Threads may have been suspended while holding locks in malloc, the
+    // Objective-C runtime, or other subsystems, so we must only call
+    // async-signal-safe functions.
+    bsg_kscrw_i_captureThreadTrace(context, path);
+    
+    if (context->crash.threadTracingEnabled) {
+        bsg_kscrashsentry_resume_threads_user(false);
+    }
 }

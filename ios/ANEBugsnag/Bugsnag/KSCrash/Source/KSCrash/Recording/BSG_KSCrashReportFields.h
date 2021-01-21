@@ -129,6 +129,7 @@
 #define BSG_KSCrashField_Subcode "subcode"
 #define BSG_KSCrashField_UserReported "user_reported"
 #define BSG_KSCrashField_Overrides "overrides"
+#define BSG_KSCrashField_EventJson "event"
 #define BSG_KSCrashField_HandledState "handledState"
 #define BSG_KSCrashField_Metadata "metaData"
 #define BSG_KSCrashField_State "state"
@@ -144,7 +145,6 @@
 
 #define BSG_KSCrashField_ActiveTimeSinceCrash "active_time_since_last_crash"
 #define BSG_KSCrashField_ActiveTimeSinceLaunch "active_time_since_launch"
-#define BSG_KSCrashField_AppActive "application_active"
 #define BSG_KSCrashField_AppInFG "application_in_foreground"
 #define BSG_KSCrashField_BGTimeSinceCrash "background_time_since_last_crash"
 #define BSG_KSCrashField_BGTimeSinceLaunch "background_time_since_launch"
@@ -174,6 +174,7 @@
 #define BSG_KSCrashField_Threads "threads"
 #define BSG_KSCrashField_User "user"
 #define BSG_KSCrashField_UserAtCrash "user_atcrash"
+#define BSG_KSCrashField_OnCrashMetadataSectionName "onCrash"
 
 #pragma mark Incomplete
 #define BSG_KSCrashField_Incomplete "incomplete"

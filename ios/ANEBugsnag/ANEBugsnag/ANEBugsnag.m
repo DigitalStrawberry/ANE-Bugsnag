@@ -12,20 +12,23 @@
 
 DEFINE_ANE_FUNCTION(init)
 {
-    NSString *apiKey = nil;
-    
-    if(FREGetObjectAsString(argv[0], &apiKey) != FRE_OK)
-    {
-        return NULL;
-    }
+    FREObject freConfig = argv[0];
     
     NSLog(@"Bugsnag ANE setup");
-    [Bugsnag startBugsnagWithApiKey:apiKey];
     
-    // Set default id to IDFV to be consistant with Actionscript
+    NSString* apiKey = FREGetObjectStringProperty(freConfig, @"iosKey");
+    
+    BugsnagConfiguration* config = [[BugsnagConfiguration alloc] initWithApiKey:apiKey];
+
+    config.releaseStage = FREGetObjectStringProperty(freConfig, @"releaseStage");
+    config.autoDetectErrors = FREGetObjectBoolProperty(freConfig, @"autoDetectErrors");
+    
     NSUUID *idfv = [[UIDevice currentDevice] identifierForVendor];
     NSString *deviceId = [idfv UUIDString];
-    [[Bugsnag configuration] setUser:deviceId withName:nil andEmail:nil];
+    
+    [Bugsnag setUser:deviceId withEmail:nil andName:nil];
+
+    [Bugsnag startWithConfiguration:config];
 
     return NULL;
 }
@@ -39,11 +42,10 @@ DEFINE_ANE_FUNCTION(setContext)
         return NULL;
     }
     
-    [Bugsnag configuration].context = myContext;
+    [Bugsnag setContext:myContext];
     
     return NULL;
 }
-
 
 DEFINE_ANE_FUNCTION(setUser)
 {
@@ -58,35 +60,7 @@ DEFINE_ANE_FUNCTION(setUser)
         return NULL;
     }
     
-    [[Bugsnag configuration] setUser:id withName:name andEmail:email];
-    
-    return NULL;
-}
-
-
-DEFINE_ANE_FUNCTION(setReleaseStage)
-{
-    NSString *releaseStage = nil;
-    if(FREGetObjectAsString(argv[0], &releaseStage) != FRE_OK)
-    {
-        return NULL;
-    }
-    
-    [Bugsnag configuration].releaseStage = releaseStage;
-    
-    return NULL;
-}
-
-
-DEFINE_ANE_FUNCTION(autoNotify)
-{
-    unsigned int autoNotify = false;
-    if(FREGetObjectAsBool(argv[0], &autoNotify) != FRE_OK)
-    {
-        return NULL;
-    }
-    
-    [Bugsnag configuration].autoNotify = autoNotify;
+    [Bugsnag setUser:id withEmail:email andName:name];
     
     return NULL;
 }
@@ -105,7 +79,7 @@ DEFINE_ANE_FUNCTION(addAttribute)
         return NULL;
     }
     
-    [Bugsnag addAttribute:name withValue:value toTabWithName:tabName];
+    [Bugsnag addMetadata:value withKey:name toSection:tabName];
     
     return NULL;
 }
@@ -122,7 +96,7 @@ DEFINE_ANE_FUNCTION(removeAttribute)
         return NULL;
     }
     
-    [Bugsnag addAttribute:name withValue:nil toTabWithName:tabName];
+    [Bugsnag clearMetadataFromSection:tabName withKey:name];
     
     return NULL;
 }
@@ -137,7 +111,7 @@ DEFINE_ANE_FUNCTION(removeTab)
         return NULL;
     }
     
-    [Bugsnag clearTabWithName:tabName];
+    [Bugsnag clearMetadataFromSection:tabName];
     
     return NULL;
 }
@@ -197,8 +171,6 @@ void ANEBugsnagContextInitializer(void* extData, const uint8_t* ctxType, FRECont
         MAP_FUNCTION(init, NULL),
         MAP_FUNCTION(setContext, NULL),
         MAP_FUNCTION(setUser, NULL),
-        MAP_FUNCTION(setReleaseStage, NULL),
-        MAP_FUNCTION(autoNotify, NULL),
         MAP_FUNCTION(crash, NULL),
         MAP_FUNCTION(addAttribute, NULL),
         MAP_FUNCTION(removeAttribute, NULL),

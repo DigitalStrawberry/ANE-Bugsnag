@@ -125,9 +125,22 @@ int bsg_ksjsoncodec_i_appendEscapedString(
          src++) {
         *dst++ = *src;
     }
-    
+
     // Deal with complicated case (if any)
+    int result;
     for (; src < srcEnd; src++) {
+        
+        // If we add an escaped control character this may exceed the buffer by up to
+        // 6 characters: add this chunk now, reset the buffer and carry on
+        if (dst + 6 > workBuffer + BSG_KSJSONCODEC_WorkBufferSize) {
+            size_t encLength = (size_t)(dst - workBuffer);
+            unlikely_if((result = addJSONData(context, dst - encLength, encLength)) !=
+                        BSG_KSJSON_OK) {
+                return result;
+            }
+            dst = workBuffer;
+        }
+        
         switch (*src) {
         case '\\':
         case '\"':
@@ -155,14 +168,14 @@ int bsg_ksjsoncodec_i_appendEscapedString(
             *dst++ = 't';
             break;
         default:
-                
+
             // escape control chars (U+0000 - U+001F)
             // see https://www.ietf.org/rfc/rfc4627.txt
-                
+
             if ((unsigned char)*src < ' ') {
                 unsigned int last = *src % 16;
                 unsigned int first = (*src - last) / 16;
-                
+
                 *dst++ = '\\';
                 *dst++ = 'u';
                 *dst++ = '0';
@@ -175,8 +188,7 @@ int bsg_ksjsoncodec_i_appendEscapedString(
         }
     }
     size_t encLength = (size_t)(dst - workBuffer);
-    dst -= encLength;
-    return addJSONData(context, dst, encLength);
+    return addJSONData(context, dst - encLength, encLength);
 }
 
 /** Escape a string for use with JSON and send to data handler.
@@ -198,8 +210,8 @@ int bsg_ksjsoncodec_i_addEscapedString(BSG_KSJSONEncodeContext *const context,
     size_t offset = 0;
     while (offset < length) {
         size_t toAdd = length - offset;
-        unlikely_if(toAdd > BSG_KSJSONCODEC_WorkBufferSize / 2) {
-            toAdd = BSG_KSJSONCODEC_WorkBufferSize / 2;
+        unlikely_if(toAdd > BSG_KSJSONCODEC_WorkBufferSize) {
+            toAdd = BSG_KSJSONCODEC_WorkBufferSize;
         }
         result = bsg_ksjsoncodec_i_appendEscapedString(context, string + offset,
                                                        toAdd);
@@ -318,6 +330,16 @@ int bsg_ksjsonaddIntegerElement(BSG_KSJSONEncodeContext *const context,
     char buff[30];
     sprintf(buff, "%lld", value);
     return addJSONData(context, buff, strlen(buff));
+}
+
+int bsg_ksjsonaddUIntegerElement(BSG_KSJSONEncodeContext *const context,
+                                 const char *const name,
+                                 unsigned long long value) {
+    int result = bsg_ksjsonbeginElement(context, name);
+    unlikely_if(result != BSG_KSJSON_OK) { return result; }
+    char buff[30];
+    sprintf(buff, "%llu", value);
+    return addJSONData(context, buff, (int)strlen(buff));
 }
 
 int bsg_ksjsonaddJSONElement(BSG_KSJSONEncodeContext *const context,

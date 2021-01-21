@@ -2,6 +2,51 @@
 
 #import "FRETypeUtils.h"
 
+BOOL FREGetRawObjectProperty(FREObject object, NSString* propertyName, FREObject* propertyValue)
+{
+    if(object == nil)
+    {
+        return NO;
+    }
+    
+    FREResult res = FREGetObjectProperty(object, (const uint8_t*) [propertyName UTF8String], propertyValue, NULL);
+    FREObjectType propType = FRE_TYPE_NULL;
+    FREGetObjectType(*propertyValue, &propType);
+    if(res != FRE_OK || propertyValue == nil || propType == FRE_TYPE_NULL)
+    {
+        return NO;
+    }
+    return YES;
+}
+
+NSString* FREGetObjectStringProperty(FREObject object, NSString* propertyName)
+{
+    FREObject prop = nil;
+    if (FREGetRawObjectProperty(object, propertyName, &prop))
+    {
+        NSString* value = nil;
+        if (FREGetObjectAsString(prop, &value) == FRE_OK)
+        {
+            return value;
+        }
+    }
+    return nil;
+}
+
+BOOL FREGetObjectBoolProperty(FREObject object, NSString* propertyName)
+{
+    FREObject prop = nil;
+    if (FREGetRawObjectProperty(object, propertyName, &prop))
+    {
+        uint32_t value = 0;
+        if (FREGetObjectAsBool(prop, &value) == FRE_OK)
+        {
+            return value == 1;
+        }
+    }
+    return NO;
+}
+
 FREResult FREGetObjectAsString( FREObject object, NSString** value )
 {
     FREResult result;

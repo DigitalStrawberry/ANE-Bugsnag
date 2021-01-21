@@ -29,6 +29,7 @@
 #define BSG_KSSystemField_BootTime "boot_time"
 #define BSG_KSSystemField_BundleID "CFBundleIdentifier"
 #define BSG_KSSystemField_BundleName "CFBundleName"
+#define BSG_KSSystemField_BundleExecutable "CFBundleExecutable"
 #define BSG_KSSystemField_BundleShortVersion "CFBundleShortVersionString"
 #define BSG_KSSystemField_BundleVersion "CFBundleVersion"
 #define BSG_KSSystemField_CPUArch "cpu_arch"
@@ -56,6 +57,11 @@
 #define BSG_KSSystemField_BuildType "build_type"
 
 #import <Foundation/Foundation.h>
+#import "BugsnagPlatformConditional.h"
+
+#if BSG_PLATFORM_IOS || BSG_PLATFORM_TVOS
+#import "BSGUIKit.h"
+#endif
 
 /**
  * Provides system information useful for a crash report.
@@ -68,6 +74,12 @@
  */
 + (NSDictionary *)systemInfo;
 
+/** Get this application's UUID.
+ *
+ * @return The UUID.
+ */
++ (NSString *)appUUID;
+
 /**
  * The build version of the OS
  */
@@ -77,5 +89,23 @@
  * Whether the current main bundle is an iOS app extension
  */
 + (BOOL)isRunningInAppExtension;
+
+/** Generate a 20 byte SHA1 hash that remains unique across a single device and
+ * application. This is slightly different from the Apple crash report key,
+ * which is unique to the device, regardless of the application.
+ *
+ * @return The stringified hex representation of the hash for this device + app.
+ */
++ (NSString *)deviceAndAppHash;
+
+#if BSG_PLATFORM_IOS || BSG_PLATFORM_TVOS
++ (UIApplicationState)currentAppState;
+
+/**
+ * YES if the app is currently shown in the foreground
+ */
++ (BOOL)isInForeground:(UIApplicationState)state;
+
+#endif
 
 @end

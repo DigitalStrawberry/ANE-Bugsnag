@@ -24,7 +24,8 @@
 // THE SOFTWARE.
 //
 
-#include "BSG_KSSystemCapabilities.h"
+#include "BugsnagPlatformConditional.h"
+
 #include "BSG_KSCrashSentry.h"
 #include "BSG_KSCrashSentry_Private.h"
 
@@ -47,7 +48,7 @@ typedef struct {
 } BSG_CrashSentry;
 
 static BSG_CrashSentry bsg_g_sentries[] = {
-#if BSG_KSCRASH_HAS_MACH
+#if BSG_HAS_MACH
     {
         BSG_KSCrashTypeMachException, bsg_kscrashsentry_installMachHandler,
         bsg_kscrashsentry_uninstallMachHandler,
@@ -90,17 +91,17 @@ static bool bsg_g_threads_are_running = true;
 BSG_KSCrashType
 bsg_kscrashsentry_installWithContext(BSG_KSCrash_SentryContext *context,
                                      BSG_KSCrashType crashTypes,
-                                     void (*onCrash)(char, char *, void *)) {
+                                     void (*onCrash)(void *)) {
     if (bsg_ksmachisBeingTraced()) {
         if (context->reportWhenDebuggerIsAttached) {
-            BSG_KSLOG_WARN("KSCrash: App is running in a debugger. Crash "
+            BSG_KSLOG_WARN("App is running in a debugger. Crash "
                            "handling is enabled via configuration.");
             BSG_KSLOG_INFO(
                 "Installing handlers with context %p, crash types 0x%x.",
                 context, crashTypes);
         } else {
-            BSG_KSLOG_WARN("KSCrash: App is running in a debugger. Only user "
-                           "reported events will be handled.");
+            BSG_KSLOG_WARN("App is running in a debugger. Only handled "
+                           "events will be sent to Bugsnag.");
             crashTypes = BSG_KSCrashTypeUserReported;
         }
     } else {
@@ -200,10 +201,9 @@ void bsg_kscrashsentry_resumeThreads(void) {
 }
 
 void bsg_kscrashsentry_clearContext(BSG_KSCrash_SentryContext *context) {
-    void (*onCrash)(char, char *, void *) = context->onCrash;
+    void (*onCrash)(void *) = context->onCrash;
     bool threadTracingEnabled = context->threadTracingEnabled;
     bool reportWhenDebuggerIsAttached = context->reportWhenDebuggerIsAttached;
-    bool suspendThreadsForUserReported = context->suspendThreadsForUserReported;
     bool writeBinaryImagesForUserReported =
         context->writeBinaryImagesForUserReported;
 
@@ -212,7 +212,6 @@ void bsg_kscrashsentry_clearContext(BSG_KSCrash_SentryContext *context) {
 
     context->threadTracingEnabled = threadTracingEnabled;
     context->reportWhenDebuggerIsAttached = reportWhenDebuggerIsAttached;
-    context->suspendThreadsForUserReported = suspendThreadsForUserReported;
     context->writeBinaryImagesForUserReported =
         writeBinaryImagesForUserReported;
 }

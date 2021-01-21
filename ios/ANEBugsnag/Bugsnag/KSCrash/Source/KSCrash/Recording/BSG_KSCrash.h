@@ -26,16 +26,11 @@
 
 #import <Foundation/Foundation.h>
 
-#import "BSG_KSSystemCapabilities.h"
-#import "BSG_KSCrashReportFilterCompletion.h"
+#import "BugsnagErrorReportSink.h"
+#import "BSGOnErrorSentBlock.h"
 #import "BSG_KSCrashReportWriter.h"
 #import "BSG_KSCrashType.h"
-
-typedef enum {
-    BSG_KSCDeleteNever,
-    BSG_KSCDeleteOnSucess,
-    BSG_KSCDeleteAlways
-} BSG_KSCDeleteBehavior;
+#import "BugsnagConfiguration.h"
 
 /**
  * Reports any crashes that occur in the application.
@@ -51,18 +46,6 @@ typedef enum {
  * Default: nil
  */
 @property(nonatomic, readwrite, retain) NSDictionary *userInfo;
-
-/** What to do after sending reports via sendAllReportsWithCompletion:
- *
- * - Use KSCDeleteNever if you will manually manage the reports.
- * - Use KSCDeleteAlways if you will be using an alert confirmation (otherwise
- * it will nag the user incessantly until he selects "yes").
- * - Use KSCDeleteOnSuccess for all other situations.
- *
- * Default: KSCDeleteAlways
- */
-@property(nonatomic, readwrite, assign)
-    BSG_KSCDeleteBehavior deleteBehaviorAfterSendAll;
 
 /** The crash types that are being handled.
  * Note: This value may change once BSG_KSCrash is installed if some handlers
@@ -94,19 +77,12 @@ typedef enum {
 /** Send any outstanding crash reports to the current sink.
  * It will only attempt to send the most recent 5 reports. All others will be
  * deleted. Once the reports are successfully sent to the server, they may be
- * deleted locally, depending on the property "deleteAfterSendAll".
+ * deleted locally.
  *
- * Note: property "sink" MUST be set or else this method will call onCompletion
+ * Note: property "sink" MUST be set or else this method will call the block
  *       with an error.
- *
- * @param onCompletion Called when sending is complete (nil = ignore).
  */
-- (void)sendAllReportsWithCompletion:
-    (BSG_KSCrashReportFilterCompletion)onCompletion;
-
-/** Delete all unsent reports.
- */
-- (void)deleteAllReports;
+- (void)sendAllReports;
 
 /** Report a custom, user defined exception.
  * This can be useful when dealing with scripting languages.
@@ -116,35 +92,41 @@ typedef enum {
  *
  * @param name The exception name (for namespacing exception types).
  * @param reason A description of why the exception occurred
- * @param exception The exception which was thrown (if any)
  * @param handledState The severity, reason, and handled-ness of the report
  * @param appState breadcrumbs and other app environmental info
  * @param overrides Report fields overridden by callbacks, collated in the
  *        final report
+ * @param eventOverrides the Bugsnag Error Payload, for handled errors only
  * @param metadata additional information to attach to the report
  * @param config delivery options
- * @param depth The number of frames to discard from the top of the stacktrace
- * @param terminateProgram If true, do not return from this function call.
- * Terminate the program instead.
  */
 - (void)reportUserException:(NSString *)name
                      reason:(NSString *)reason
-          originalException:(NSException *)exception
                handledState:(NSDictionary *)handledState
                    appState:(NSDictionary *)appState
           callbackOverrides:(NSDictionary *)overrides
+             eventOverrides:(NSDictionary *)eventOverrides
                    metadata:(NSDictionary *)metadata
-                     config:(NSDictionary *)config
-               discardDepth:(int)depth
-           terminateProgram:(BOOL)terminateProgram;
+                     config:(NSDictionary *)config;
 
-/** If YES, user reported exceptions will suspend all threads during report
- * generation. All threads will be suspended while generating a crash report for
- * a user reported exception.
+/**
+ * Collects a trace of all the threads running in application, if the user has
+ * configured this behaviour, and serializes them into an array of BugsnagThread.
  *
- * Default: YES
+ * @param exc the exception to record
+ * @param depth the number of frames to discard from the main thread's stacktrace
+ * @param recordAllThreads whether all threads should be recorded or just the
+ * main thread's stacktrace
+ * @return an array of BugsnagThread
  */
-@property(nonatomic, readwrite, assign) BOOL suspendThreadsForUserReported;
+- (NSArray<BugsnagThread *> *)captureThreads:(NSException *)exc
+                                       depth:(int)depth
+                            recordAllThreads:(BOOL)recordAllThreads;
+
+/**
+ * Collects information about the application's foreground state (duration in foreground/background)
+ */
+- (NSDictionary *)captureAppStats;
 
 /** If YES, reports will be sent even if a debugger is attached
  *
@@ -153,7 +135,7 @@ typedef enum {
 @property(nonatomic, readwrite, assign) BOOL reportWhenDebuggerIsAttached;
 
 /**
- * If YES, thread traces will be collected with each report.
+* The methodology used for tracing threads.
  */
 @property(nonatomic, readwrite, assign) BOOL threadTracingEnabled;
 

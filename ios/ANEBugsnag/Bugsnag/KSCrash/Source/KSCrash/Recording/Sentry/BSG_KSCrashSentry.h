@@ -37,29 +37,30 @@ extern "C" {
 #include "BSG_KSArchSpecific.h"
 #include "BSG_KSCrashType.h"
 
+#include <CoreFoundation/CoreFoundation.h>
 #include <mach/mach_types.h>
 #include <signal.h>
 #include <stdbool.h>
 
-typedef enum {
+typedef CF_ENUM(unsigned, BSG_KSCrashReservedTheadType) {
     BSG_KSCrashReservedThreadTypeMachPrimary,
     BSG_KSCrashReservedThreadTypeMachSecondary,
     BSG_KSCrashReservedThreadTypeCount
-} BSG_KSCrashReservedTheadType;
+};
 
 typedef struct BSG_KSCrash_SentryContext {
     // Caller defined values. Caller must fill these out prior to installation.
 
     /** Called by the crash handler when a crash is detected. */
-    void (*onCrash)(char, char[21], void *);
-
-    /** If true, will suspend threads for user reported exceptions. */
-    bool suspendThreadsForUserReported;
+    void (*onCrash)(void *);
 
     /** If true, will send reports even if debugger is attached. */
     bool reportWhenDebuggerIsAttached;
 
-    /** If true, will trace threads and report binary images. */
+    /**
+     * The methodology used for tracing threads.
+     * If true, will capture traces for all running threads
+     */
     bool threadTracingEnabled;
 
     /** If true, will record binary images. */
@@ -140,6 +141,7 @@ typedef struct BSG_KSCrash_SentryContext {
 
         /** Handled exception report info: */
         const char *overrides; // info set in callbacks
+        const char *eventOverrides; // Bugsnag Error API JSON payload for handled events
         const char *handledState;
         const char *metadata;
         const char *state; // breadcrumbs, other shared app state
@@ -162,7 +164,7 @@ typedef struct BSG_KSCrash_SentryContext {
 BSG_KSCrashType
 bsg_kscrashsentry_installWithContext(BSG_KSCrash_SentryContext *context,
                                      BSG_KSCrashType crashTypes,
-                                     void (*onCrash)(char, char *, void *));
+                                     void (*onCrash)(void *));
 
 /** Uninstall crash sentry.
  *

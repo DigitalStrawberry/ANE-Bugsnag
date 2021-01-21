@@ -24,20 +24,25 @@
 // THE SOFTWARE.
 //
 
+#import "BugsnagPlatformConditional.h"
+
 #import "BSG_KSSystemInfo.h"
 #import "BSG_KSSystemInfoC.h"
 #import "BSG_KSDynamicLinker.h"
+#import "BSG_KSMachHeaders.h"
 #import "BSG_KSJSONCodecObjC.h"
 #import "BSG_KSMach.h"
 #import "BSG_KSSysCtl.h"
-#import "BSG_KSSystemCapabilities.h"
 #import "BugsnagKeys.h"
 #import "BugsnagCollections.h"
 #import "BSG_KSLogger.h"
+#import "BSG_KSCrashReportFields.h"
+#import "BSG_KSMach.h"
+#import "BSG_KSCrash.h"
 
 #import <CommonCrypto/CommonDigest.h>
-#if BSG_KSCRASH_HAS_UIKIT
-#import <UIKit/UIKit.h>
+#if BSG_PLATFORM_IOS || BSG_PLATFORM_TVOS
+#import "BSGUIKit.h"
 #endif
 
 @implementation BSG_KSSystemInfo
@@ -167,20 +172,14 @@
     return result;
 }
 
-/** Generate a 20 byte SHA1 hash that remains unique across a single device and
- * application. This is slightly different from the Apple crash report key,
- * which is unique to the device, regardless of the application.
- *
- * @return The stringified hex representation of the hash for this device + app.
- */
 + (NSString *)deviceAndAppHash {
     NSMutableData *data = nil;
 
-#if BSG_KSCRASH_HAS_UIDEVICE
-    if ([[UIDevice currentDevice]
+#if BSG_HAS_UIDEVICE
+    if ([[UIDEVICE currentDevice]
             respondsToSelector:@selector(identifierForVendor)]) {
         data = [NSMutableData dataWithLength:16];
-        [[UIDevice currentDevice].identifierForVendor
+        [[UIDEVICE currentDevice].identifierForVendor
             getUUIDBytes:data.mutableBytes];
     } else
 #endif
@@ -262,7 +261,7 @@
  * @return YES if the device is jailbroken.
  */
 + (BOOL)isJailbroken {
-    return bsg_ksdlimageNamed("MobileSubstrate", false) != UINT32_MAX;
+    return bsg_mach_headers_image_named("MobileSubstrate", false) != NULL;
 }
 
 /** Check if the current build is a debug build.
@@ -282,7 +281,7 @@
  * @return YES if this is a simulator build.
  */
 + (BOOL)isSimulatorBuild {
-#if TARGET_OS_SIMULATOR
+#if BSG_PLATFORM_SIMULATOR
     return YES;
 #else
     return NO;
@@ -294,18 +293,7 @@
  * @return App Store receipt for iOS 7+, nil otherwise.
  */
 + (NSString *)receiptUrlPath {
-    NSString *path = nil;
-#if BSG_KSCRASH_HOST_IOS
-    // For iOS 6 compatibility
-    if ([[UIDevice currentDevice].systemVersion
-            compare:@"7"
-            options:NSNumericSearch] != NSOrderedAscending) {
-#endif
-        path = [NSBundle mainBundle].appStoreReceiptURL.path;
-#if BSG_KSCRASH_HOST_IOS
-    }
-#endif
-    return path;
+    return [NSBundle mainBundle].appStoreReceiptURL.path;
 }
 
 /** Check if the current build is a "testing" build.
@@ -365,9 +353,9 @@
 #ifdef __clang_version__
     BSGDictSetSafeObject(sysInfo, @__clang_version__, @BSG_KSSystemField_ClangVersion);
 #endif
-#if BSG_KSCRASH_HAS_UIDEVICE
-    BSGDictSetSafeObject(sysInfo, [UIDevice currentDevice].systemName, @BSG_KSSystemField_SystemName);
-    BSGDictSetSafeObject(sysInfo, [UIDevice currentDevice].systemVersion, @BSG_KSSystemField_SystemVersion);
+#if BSG_HAS_UIDEVICE
+    BSGDictSetSafeObject(sysInfo, [UIDEVICE currentDevice].systemName, @BSG_KSSystemField_SystemName);
+    BSGDictSetSafeObject(sysInfo, [UIDEVICE currentDevice].systemVersion, @BSG_KSSystemField_SystemVersion);
 #else
     BSGDictSetSafeObject(sysInfo, @"Mac OS", @BSG_KSSystemField_SystemName);
     NSOperatingSystemVersion version =
@@ -390,7 +378,7 @@
         BSGDictSetSafeObject(sysInfo, model, @BSG_KSSystemField_Machine);
         BSGDictSetSafeObject(sysInfo, @"simulator", @BSG_KSSystemField_Model);
     } else {
-#if BSG_KSCRASH_HOST_OSX
+#if BSG_PLATFORM_OSX
         // MacOS has the machine in the model field, and no model
         BSGDictSetSafeObject(sysInfo, [self stringSysctl:BSGKeyHwModel], @BSG_KSSystemField_Machine);
 #else
@@ -407,6 +395,7 @@
     BSGDictSetSafeObject(sysInfo, infoDict[BSGKeyExecutableName], @BSG_KSSystemField_Executable);
     BSGDictSetSafeObject(sysInfo, infoDict[@"CFBundleIdentifier"], @BSG_KSSystemField_BundleID);
     BSGDictSetSafeObject(sysInfo, infoDict[@"CFBundleName"], @BSG_KSSystemField_BundleName);
+    BSGDictSetSafeObject(sysInfo, infoDict[@"CFBundleExecutable"], @BSG_KSSystemField_BundleExecutable);
     BSGDictSetSafeObject(sysInfo, infoDict[@"CFBundleVersion"], @BSG_KSSystemField_BundleVersion);
     BSGDictSetSafeObject(sysInfo, infoDict[@"CFBundleShortVersionString"], @BSG_KSSystemField_BundleShortVersion);
     BSGDictSetSafeObject(sysInfo, [self appUUID], @BSG_KSSystemField_AppUUID);
@@ -422,10 +411,14 @@
     BSGDictSetSafeObject(sysInfo, [self deviceAndAppHash], @BSG_KSSystemField_DeviceAppHash);
     BSGDictSetSafeObject(sysInfo, [BSG_KSSystemInfo buildType], @BSG_KSSystemField_BuildType);
 
-    NSDictionary *memory =
-            @{@BSG_KSSystemField_Size: [self int64Sysctl:@"hw.memsize"]};
+    NSDictionary *memory = @{
+            @BSG_KSSystemField_Size: [self int64Sysctl:@"hw.memsize"],
+            @BSG_KSCrashField_Usable: @(bsg_ksmachusableMemory())
+    };
     BSGDictSetSafeObject(sysInfo, memory, @BSG_KSSystemField_Memory);
 
+    NSDictionary *statsInfo = [[BSG_KSCrash sharedInstance] captureAppStats];
+    BSGDictSetSafeObject(sysInfo, statsInfo, @BSG_KSCrashField_AppStats);
     return sysInfo;
 }
 
@@ -434,7 +427,7 @@
 }
 
 + (BOOL)isRunningInAppExtension {
-#if BSG_KSCRASH_HOST_IOS
+#if BSG_PLATFORM_IOS
     NSBundle *mainBundle = [NSBundle mainBundle];
     // From the App Extension Programming Guide:
     // > When you build an extension based on an Xcode template, you get an
@@ -452,6 +445,50 @@
     return NO;
 #endif
 }
+
+#if BSG_PLATFORM_IOS || BSG_PLATFORM_TVOS
++ (UIApplicationState)currentAppState {
+    // Only checked outside of app extensions since sharedApplication is
+    // unavailable to extension UIKit APIs
+    if ([self isRunningInAppExtension]) {
+        return UIApplicationStateActive;
+    }
+
+    UIApplicationState(^getState)(void) = ^() {
+        // Calling this API indirectly to avoid a compile-time check that
+        // [UIApplication sharedApplication] is not called from app extensions
+        // (which is handled above)
+        UIApplication *app = [UIAPPLICATION performSelector:@selector(sharedApplication)];
+        return [app applicationState];
+    };
+
+    if ([[NSThread currentThread] isMainThread]) {
+        return getState();
+    } else {
+        // [UIApplication sharedApplication] is a main thread-only API
+        __block UIApplicationState state;
+        dispatch_sync(dispatch_get_main_queue(), ^{
+            state = getState();
+        });
+        return state;
+    }
+}
+
++ (BOOL)isInForeground:(UIApplicationState)state {
+    // The app is in the foreground if the current state is "active" or
+    // "inactive". From the UIApplicationState docs:
+    // > UIApplicationStateActive
+    // >   The app is running in the foreground and currently receiving events.
+    // > UIApplicationStateInactive
+    // >   The app is running in the foreground but is not receiving events.
+    // >   This might happen as a result of an interruption or because the app
+    // >   is transitioning to or from the background.
+    // > UIApplicationStateBackground
+    // >   The app is running in the background.
+    return state == UIApplicationStateInactive
+        || state == UIApplicationStateActive;
+}
+#endif
 
 @end
 

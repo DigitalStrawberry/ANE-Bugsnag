@@ -151,14 +151,27 @@ static const unsigned long dispatch_queue_key = __PTK_LIBDISPATCH_KEY0;
     uintptr_t dq_specific_q;
 
 struct dispatch_queue_s {
-    DISPATCH_STRUCT_HEADER(queue);
-    DISPATCH_QUEUE_HEADER;
+    DISPATCH_STRUCT_HEADER(queue)
+    DISPATCH_QUEUE_HEADER
     char dq_label[DISPATCH_QUEUE_MIN_LABEL_SIZE]; // must be last
     char _dq_pad[DISPATCH_QUEUE_CACHELINE_PAD];   // for static queues only
 };
 
 #undef pthread_t
 #undef dispatch_queue_s
+
+// ======================================================================
+#pragma mark - xnu-6153.141.1/osfmk/mach/arm/exception.h -
+// ======================================================================
+
+/*
+ *      EXC_BAD_ACCESS
+ *      Note: do not conflict with kern_return_t values returned by vm_fault
+ */
+#define EXC_ARM_DA_ALIGN    0x101    /* Alignment Fault */
+#define EXC_ARM_DA_DEBUG    0x102    /* Debug (watch/break) Fault */
+#define EXC_ARM_SP_ALIGN    0x103    /* SP Alignment Fault */
+#define EXC_ARM_SWP            0x104    /* SWP instruction */
 
 #ifdef __cplusplus
 }

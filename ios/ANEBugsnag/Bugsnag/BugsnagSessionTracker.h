@@ -27,6 +27,7 @@ extern NSString *const BSGSessionUpdateNotification;
  @return A new session tracker
  */
 - (instancetype)initWithConfig:(BugsnagConfiguration *)config
+                        client:(BugsnagClient *)client
             postRecordCallback:(void(^)(BugsnagSession *))callback;
 
 /**
@@ -34,12 +35,12 @@ extern NSString *const BSGSessionUpdateNotification;
  */
 - (void)startNewSession;
 
-- (void)stopSession;
+- (void)pauseSession;
 - (BOOL)resumeSession;
 
 /**
  Record a new auto-captured session if neededed. Auto-captured sessions are only
- recorded and sent if -[BugsnagConfiguration shouldAutoCaptureSessions] is YES
+ recorded and sent if -[BugsnagConfiguration autoTrackSessions] is YES
  */
 - (void)startNewSessionIfAutoCaptureEnabled;
 
@@ -87,5 +88,8 @@ extern NSString *const BSGSessionUpdateNotification;
  * Retrieves the running session, or nil if the session is stopped or has not yet been started/resumed.
  */
 @property (nonatomic, strong, readonly) BugsnagSession *runningSession;
+
+- (void)addRuntimeVersionInfo:(NSString *)info
+                      withKey:(NSString *)key;
 
 @end

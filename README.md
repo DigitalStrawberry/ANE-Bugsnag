@@ -8,12 +8,12 @@ This is an Adobe Air Native Extension for the [Bugsnag](https://bugsnag.com/) bu
 
 ## Version
 
-This extension uses the Bugsnag SDK version `5.22.5` for iOS and SDK version `4.19.1` for Android.
+This extension uses the Bugsnag SDK version `6.3.0` for iOS and SDK version `5.5.0` for Android.
 
 
 ## Requirements
 
-This extension requires iOS 6.0 or higher and Android 2.2 (API level 8) or higher.
+This extension requires iOS 10.0 or higher and Android 4 (API level 15) or higher.
 
 ## Binary Files
 
@@ -40,11 +40,19 @@ Before you can begin tracking bugs you will need to set up a two new projects on
 
 ### Initialize
 
-Start off by initializing the Bugsnag extension with your API key:
+Start off by initializing the Bugsnag extension with your API key and Bugsnag settings:
 
 ```as3
-Bugsnag.init("IOS_KEY", "ANDROID_KEY");
+var config:BugsnagConfig = new BugsnagConfig();
+config.iosKey = IOS_KEY;
+config.androidKey = ANDROID_KEY;
+config.autoDetectErrors = true;
+config.releaseStage = ReleaseStage.PRODUCTION;
+
+Bugsnag.init(config);
 ```
+
+By default the release stage is set to `PRODUCTION` and `autoDetectErrors` is `true`.
 
 ### Catch Unhandled Errors (Optional)
 
@@ -145,35 +153,6 @@ Bugsnag.setUser("123456", "user_123456", "user123456@example.com");
 ```
 
 By default the iOS extension will use the IDFV for the user id. Android will generate and save a random UUID value for the user id.
-
-### Release Stage
-
-You can tell Bugsnag which release stage your app is in to more easily group errors:
-
-```as3
-Bugsnag.releaseStage = ReleaseStage.DEVELOPMENT;
-```
-
-By default the release stage is set to ```PRODUCTION```.
-
-
-### Auto Notify
-
-You can enable or disable auto notification of unhandled exceptions:
-
-```as3
-Bugsnag.autoNotify = false;
-```
-
-### Notify Release Stages
-
-You can also tell Bugsnag to only notify errors in certain production stages:
-
-```as3
-Bugsnag.notifyReleaseStages = [ReleaseStage.PRODUCTION];
-```
-
-The code above restricts automatic notification to production stages only. Errors in all other production stages will be ignored.
 
 ### Custom Data and Tabs
 

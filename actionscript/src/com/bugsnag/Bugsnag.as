@@ -26,16 +26,17 @@ package com.bugsnag
 		private static var _user:Object = {};
 		private static var _autoNotify:Boolean = true;
 		private static var _tabs:Object = {};
-		private static var _notifyReleaseStages:Array = [];
 		private static var _requests:RequestQueue = new RequestQueue();
 
 		public static var getStackTrace:Function = null;
 
 
-		public static function init(iosKey:String = null, androidKey:String = null):void
+		public static function init(config:BugsnagConfig):void
 		{
-			_iosKey = iosKey;
-			_androidKey = androidKey;
+			_iosKey = config.iosKey;
+			_androidKey = config.androidKey;
+			_autoNotify = config.autoDetectErrors;
+			_releaseStage = config.releaseStage;
 
 			if((iOS || android) && _mExtContext == null)
 			{
@@ -48,29 +49,22 @@ package com.bugsnag
 
 				if(iOS && _iosKey != null && _iosKey != "")
 				{
-					_mExtContext.call("init", _iosKey);
+					_mExtContext.call("init", config);
 				}
 				else if(android && _androidKey != null && _androidKey != "")
 				{
-					_mExtContext.call("initialize", _androidKey);
+					_mExtContext.call("initialize", config);
 				}
 			}
 
 			// User id
 			_user.id = deviceId;
-
-			updateAutoNotify();
 		}
 
 
 		public static function handleUncaughtError(event:UncaughtErrorEvent):void
 		{
 			if(!_autoNotify)
-			{
-				return;
-			}
-
-			if(_notifyReleaseStages != null && _notifyReleaseStages.length > 0 && _notifyReleaseStages.indexOf(_releaseStage) == -1)
 			{
 				return;
 			}
@@ -295,18 +289,6 @@ package com.bugsnag
 		}
 
 
-		private static function updateAutoNotify():void
-		{
-			// Auto notify?
-			var autoNotify:Boolean = _autoNotify && (_notifyReleaseStages.length == 0 || _notifyReleaseStages.indexOf(_releaseStage) != -1);
-
-			if(_mExtContext != null)
-			{
-				_mExtContext.call("autoNotify", autoNotify);
-			}
-		}
-
-
 		public static function crashNative():void
 		{
 			if(_mExtContext != null)
@@ -326,33 +308,6 @@ package com.bugsnag
 		}
 
 
-		/**
-		 * Release stage of the current application.
-		 */
-		public static function get releaseStage():String
-		{
-			return _releaseStage;
-		}
-
-
-		public static function set releaseStage(value:String):void
-		{
-			if(value != ReleaseStage.DEVELOPMENT &&
-			   value != ReleaseStage.STAGING &&
-			   value != ReleaseStage.PRODUCTION)
-			{
-				throw Error("Invalid release stage");
-			}
-
-			_releaseStage = value;
-
-			if(_mExtContext != null)
-			{
-				_mExtContext.call("setReleaseStage", _releaseStage);
-			}
-		}
-
-
 		public static function get context():String
 		{
 			return _context;
@@ -367,32 +322,6 @@ package com.bugsnag
 			{
 				_mExtContext.call("setContext", _context);
 			}
-		}
-
-
-		public static function get autoNotify():Boolean
-		{
-			return _autoNotify;
-		}
-
-
-		public static function set autoNotify(value:Boolean):void
-		{
-			_autoNotify = value;
-			updateAutoNotify();
-		}
-
-
-		public static function get notifyReleaseStages():Array
-		{
-			return _notifyReleaseStages;
-		}
-
-
-		public static function set notifyReleaseStages(value:Array):void
-		{
-			_notifyReleaseStages = value;
-			updateAutoNotify();
 		}
 
 
